@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Şevval & Furkan - Sevgililer Günü</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;600&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Poppins', sans-serif;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Arkaplan için yüzen kalpler */
+        .bg-heart {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.5);
+            animation: float 6s linear infinite;
+            z-index: 0;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(0.5); opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 3rem;
+            text-align: center;
+            z-index: 10;
+            max-width: 90%;
+            width: 500px;
+            animation: fadeIn 1.5s ease-in-out;
+        }
+
+        h1 {
+            font-family: 'Great Vibes', cursive;
+            color: #d63384;
+            font-size: 3.5rem;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            color: #444;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .names {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #c02669;
+            margin-bottom: 1rem;
+        }
+
+        .counter-box {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 2rem 0;
+        }
+
+        .time-unit {
+            background: rgba(255, 255, 255, 0.6);
+            padding: 10px;
+            border-radius: 10px;
+            min-width: 70px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .time-unit span {
+            display: block;
+            font-weight: bold;
+            font-size: 1.5rem;
+            color: #d63384;
+        }
+
+        .time-unit p {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 5px;
+        }
+
+        .love-note {
+            font-style: italic;
+            color: #666;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            margin-top: 2rem;
+            padding: 12px 30px;
+            background: #d63384;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 15px rgba(214, 51, 132, 0.4);
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            background: #c02669;
+        }
+
+        .heart-emoji {
+            position: fixed;
+            top: -10vh;
+            font-size: 2rem;
+            animation: fall 3s linear forwards;
+            z-index: 100;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(110vh); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Mobil Uyumluluk */
+        @media (max-width: 600px) {
+            h1 { font-size: 2.5rem; }
+            .names { font-size: 1.5rem; }
+            .counter-box { gap: 5px; }
+            .time-unit { min-width: 50px; padding: 5px; }
+            .time-unit span { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="bg-hearts-container"></div>
+
+    <div class="container">
+        <h1>Sevgililer Günümüz <br> Kutlu Olsun</h1>
+        <div class="names">Şevval ❤️ Furkan</div>
+        
+        <p>Seninle tanıştığımız <strong>5 Aralık 2025</strong>'ten beri hayatım çok daha güzel...</p>
+
+        <div class="counter-box">
+            <div class="time-unit">
+                <span id="days">0</span>
+                <p>Gün</p>
+            </div>
+            <div class="time-unit">
+                <span id="hours">0</span>
+                <p>Saat</p>
+            </div>
+            <div class="time-unit">
+                <span id="minutes">0</span>
+                <p>Dakika</p>
+            </div>
+            <div class="time-unit">
+                <span id="seconds">0</span>
+                <p>Saniye</p>
+            </div>
+        </div>
+
+        <p class="love-note">Nice mutlu anılara birlikte...</p>
+
+        <button class="btn" onclick="rainHearts()">Seni Seviyorum ❤️</button>
+    </div>
+
+    <script>
+        // --- SAYAÇ AYARLARI ---
+        const startDate = new Date("December 5, 2025 00:00:00").getTime();
+
+        function updateCounter() {
+            const now = new Date().getTime();
+            const difference = now - startDate;
+
+            const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+
+            document.getElementById("days").innerText = days;
+            document.getElementById("hours").innerText = hours;
+            document.getElementById("minutes").innerText = minutes;
+            document.getElementById("seconds").innerText = seconds;
+        }
+
+        setInterval(updateCounter, 1000);
+        updateCounter(); // İlk yüklemede hemen çalıştır
+
+        // --- KALP YAĞMURU EFEKTİ ---
+        function rainHearts() {
+            const heartCount = 30; // Butona basınca kaç kalp çıksın
+            for (let i = 0; i < heartCount; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement("div");
+                    heart.classList.add("heart-emoji");
+                    heart.innerHTML = "❤️";
+                    heart.style.left = Math.random() * 100 + "vw";
+                    heart.style.animationDuration = (Math.random() * 2 + 2) + "s";
+                    heart.style.fontSize = (Math.random() * 20 + 20) + "px";
+                    document.body.appendChild(heart);
+
+                    // Animasyon bitince elementi sil (performans için)
+                    setTimeout(() => {
+                        heart.remove();
+                    }, 4000);
+                }, i * 100);
+            }
+        }
+
+        // --- ARKAPLAN ANİMASYONU ---
+        function createBgHearts() {
+            const container = document.getElementById('bg-hearts-container');
+            setInterval(() => {
+                const bgHeart = document.createElement('div');
+                bgHeart.classList.add('bg-heart');
+                bgHeart.innerHTML = '💖';
+                bgHeart.style.left = Math.random() * 100 + 'vw';
+                bgHeart.style.fontSize = (Math.random() * 20 + 10) + 'px';
+                bgHeart.style.animationDuration = (Math.random() * 3 + 4) + 's';
+                document.body.appendChild(bgHeart);
+
+                setTimeout(() => {
+                    bgHeart.remove();
+                }, 7000);
+            }, 500);
+        }
+        createBgHearts();
+
+    </script>
+</body>
+</html>
