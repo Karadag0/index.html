@@ -1,0 +1,3325 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Herkes çiçek alır, ben senin için kodladım.</title>
+
+  <style>
+    :root {
+      --bg-core: #07040a;
+      --title-glow: rgba(244, 63, 94, 0.45);
+      --accent-gold: #f5d08a;
+      --font-serif: "Palatino Linotype", "Book Antiqua", Palatino, "Times New Roman", Georgia, serif;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      touch-action: manipulation;
+      background-color: var(--bg-core);
+      font-family: var(--font-sans);
+      color: #fffaf5;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    input {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+
+    /* Fullscreen High-DPI Canvas */
+    #bouquetCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 1;
+      pointer-events: none;
+      touch-action: none;
+    }
+
+    body.is-unlocked #bouquetCanvas {
+      pointer-events: auto;
+    }
+
+    .font-editorial {
+      font-family: var(--font-serif);
+    }
+
+    /* ========================================================================
+       1. PASSWORD LOCK SCREEN (#lock-screen)
+       ======================================================================== */
+    #lock-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding:
+        calc(env(safe-area-inset-top, 0px) + 12px)
+        16px
+        calc(env(safe-area-inset-bottom, 0px) + 12px);
+      background: radial-gradient(circle at 50% 35%, rgba(24, 10, 30, 0.76) 0%, rgba(7, 4, 10, 0.92) 100%);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition:
+        opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 0.85s;
+    }
+
+    #lock-screen.is-unlocked {
+      opacity: 0;
+      transform: scale(1.06);
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .lock-card {
+      width: 100%;
+      max-width: 372px;
+      max-height: 100%;
+      overflow-y: auto;
+      border-radius: 32px;
+      padding: 20px 18px;
+      text-align: center;
+      background: linear-gradient(160deg, rgba(28, 14, 30, 0.82) 0%, rgba(11, 6, 15, 0.9) 100%);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(251, 207, 232, 0.22);
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.78),
+        0 0 44px rgba(244, 114, 182, 0.16),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+      transition: border-color 0.22s ease, box-shadow 0.22s ease;
+    }
+
+    @media (min-width: 420px) {
+      .lock-card {
+        padding: 24px 24px;
+      }
+    }
+
+    @keyframes lockShake {
+      0%, 100% { transform: translateX(0); }
+      18% { transform: translateX(-10px); }
+      36% { transform: translateX(9px); }
+      54% { transform: translateX(-7px); }
+      72% { transform: translateX(6px); }
+      88% { transform: translateX(-3px); }
+    }
+
+    .lock-card.lock-error {
+      animation: lockShake 0.38s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+      border-color: rgba(244, 63, 94, 0.85);
+      box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.8),
+        0 0 36px rgba(225, 29, 72, 0.55),
+        inset 0 1px 0 rgba(255, 200, 210, 0.25);
+    }
+
+    .lock-emblem {
+      margin: 0 auto 10px;
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(244, 63, 94, 0.22), rgba(251, 191, 36, 0.16), rgba(236, 72, 153, 0.22));
+      border: 1px solid rgba(254, 205, 211, 0.26);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fecdd3;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    }
+
+    .lock-title {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-weight: 600;
+      font-size: 1.55rem;
+      line-height: 1.2;
+      background: linear-gradient(90deg, #ffe4e6 0%, #fffbeb 50%, #fbcfe8 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .lock-subtitle {
+      margin: 4px 0 0;
+      font-size: 0.78rem;
+      color: rgba(255, 228, 230, 0.78);
+      letter-spacing: 0.02em;
+      transition: color 0.2s ease;
+    }
+
+    .lock-subtitle.is-error {
+      color: #fda4af;
+    }
+
+    /* 8 Glowing Glass Digit Slots */
+    .digit-slots {
+      margin: 14px 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .digit-slot {
+      width: 32px;
+      height: 38px;
+      border-radius: 11px;
+      border: 1px solid rgba(253, 230, 218, 0.2);
+      background: rgba(255, 255, 255, 0.045);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: rgba(255, 241, 242, 0.28);
+      transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    @media (min-width: 380px) {
+      .digit-slots {
+        gap: 8px;
+      }
+      .digit-slot {
+        width: 35px;
+        height: 41px;
+        font-size: 1.35rem;
+      }
+    }
+
+    .digit-slot.is-active {
+      border-color: rgba(251, 207, 232, 0.58);
+      box-shadow: 0 0 14px rgba(244, 114, 182, 0.26);
+    }
+
+    .digit-slot.is-filled {
+      border-color: rgba(251, 207, 232, 0.78);
+      background: linear-gradient(180deg, rgba(244, 114, 182, 0.25) 0%, rgba(225, 29, 72, 0.18) 100%);
+      color: #fff1f2;
+      text-shadow: 0 0 10px rgba(251, 207, 232, 0.85);
+      box-shadow:
+        0 0 14px rgba(244, 114, 182, 0.44),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .lock-card.lock-error .digit-slot.is-filled {
+      border-color: #fda4af;
+      background: rgba(225, 29, 72, 0.34);
+      color: #ffe4e6;
+      box-shadow: 0 0 16px rgba(225, 29, 72, 0.78);
+    }
+
+    .pin-input-wrap {
+      max-width: 276px;
+      margin: 0 auto 14px;
+    }
+
+    #pin-input {
+      width: 100%;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(255, 245, 248, 0.07);
+      border: 1px solid rgba(253, 230, 218, 0.22);
+      color: #fff1f2;
+      font-family: var(--font-sans);
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      text-align: center;
+      outline: none;
+      caret-color: #f472b6;
+      transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #pin-input::placeholder {
+      color: rgba(253, 230, 218, 0.32);
+      letter-spacing: 0.32em;
+    }
+
+    #pin-input:focus {
+      background: rgba(255, 245, 248, 0.11);
+      border-color: rgba(251, 207, 232, 0.65);
+      box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.18);
+    }
+
+    /* 3x4 Tactile Zero-Delay On-Screen Keypad */
+    .keypad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-width: 276px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 420px) {
+      .keypad-grid {
+        gap: 10px;
+      }
+    }
+
+    .keypad-btn {
+      height: 44px;
+      border-radius: 16px;
+      touch-action: manipulation;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      background: rgba(255, 245, 248, 0.068);
+      border: 1px solid rgba(255, 235, 242, 0.15);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+      font-family: var(--font-serif);
+      font-size: 1.32rem;
+      font-weight: 600;
+      color: #fff1f2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.1s ease, background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    @media (min-width: 420px) {
+      .keypad-btn {
+        height: 48px;
+        font-size: 1.45rem;
+      }
+    }
+
+    .keypad-btn.keypad-action {
+      font-family: var(--font-sans);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 600;
+      color: rgba(254, 205, 211, 0.85);
+    }
+
+    .keypad-btn.keypad-back {
+      font-family: var(--font-sans);
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: rgba(254, 205, 211, 0.9);
+    }
+
+    .keypad-btn:hover {
+      background: rgba(251, 207, 232, 0.14);
+      border-color: rgba(251, 207, 232, 0.34);
+    }
+
+    .keypad-btn:active,
+    .keypad-btn.is-pressed {
+      transform: scale(0.92);
+      background: rgba(244, 114, 182, 0.3);
+      border-color: rgba(253, 224, 238, 0.65);
+      box-shadow: 0 0 18px rgba(244, 114, 182, 0.4);
+    }
+
+    /* ========================================================================
+       2. POETIC TOP TYPOGRAPHY OVERLAY
+       ======================================================================== */
+    #heroHeader {
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 0;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: calc(env(safe-area-inset-top, 0px) + 20px) 16px 0;
+    }
+
+    @media (min-width: 640px) {
+      #heroHeader {
+        padding-top: calc(env(safe-area-inset-top, 0px) + 32px);
+      }
+    }
+
+    .cinema-reveal {
+      opacity: 0;
+      transform: translateY(16px);
+      filter: blur(5px);
+      transition:
+        opacity 1.5s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 1.5s cubic-bezier(0.22, 1, 0.36, 1),
+        filter 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .cinema-reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+
+    .delay-1 { transition-delay: 0.35s; }
+    .delay-2 { transition-delay: 0.95s; }
+    .delay-3 { transition-delay: 1.65s; }
+    .delay-4 { transition-delay: 2.35s; }
+
+    #recipientBadge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 4px;
+    }
+
+    .badge-line-left {
+      height: 1px;
+      width: 24px;
+      background: linear-gradient(90deg, transparent, rgba(253, 230, 138, 0.65));
+    }
+
+    .badge-line-right {
+      height: 1px;
+      width: 24px;
+      background: linear-gradient(90deg, rgba(253, 230, 138, 0.65), transparent);
+    }
+
+    #recipientText {
+      font-family: var(--font-serif);
+      font-style: italic;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      color: rgba(254, 243, 199, 0.88);
+      font-weight: 500;
+    }
+
+    @media (min-width: 640px) {
+      #recipientText {
+        font-size: 0.88rem;
+      }
+      .badge-line-left, .badge-line-right {
+        width: 34px;
+      }
+    }
+
+    #line1Text {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(1.38rem, 4.5vw, 2.15rem);
+      color: rgba(245, 245, 244, 0.92);
+      text-shadow:
+        0 2px 12px rgba(0, 0, 0, 0.85),
+        0 0 22px rgba(255, 235, 215, 0.22);
+      line-height: 1.25;
+    }
+
+    #line2Text {
+      margin: 2px 0 0;
+      font-family: var(--font-serif);
+      font-weight: 600;
+      font-style: italic;
+      font-size: clamp(2rem, 7vw, 3.85rem);
+      letter-spacing: -0.015em;
+      line-height: 1.08;
+      background-image: linear-gradient(90deg, #ffe4e6 0%, #fffbeb 50%, #fecdd3 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow:
+        0 2px 18px rgba(0, 0, 0, 0.75),
+        0 0 34px var(--title-glow);
+    }
+
+    #personalNoteText {
+      margin: 6px 0 0;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: clamp(0.82rem, 2.6vw, 1.08rem);
+      color: rgba(254, 243, 199, 0.78);
+      text-shadow:
+        0 2px 12px rgba(0, 0, 0, 0.85),
+        0 0 22px rgba(255, 235, 215, 0.22);
+      max-width: 440px;
+      line-height: 1.45;
+    }
+
+    /* ========================================================================
+       3. GLASSMORPHISM TOAST, BOTTOM CONTROLS & MODAL
+       ======================================================================== */
+    .luxury-glass {
+      background: rgba(16, 11, 16, 0.62);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 240, 225, 0.15);
+      box-shadow:
+        0 12px 36px rgba(0, 0, 0, 0.58),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    #toastBanner {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + 14px);
+      left: 50%;
+      transform: translate(-50%, -6px);
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0;
+      padding: 6px 16px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #fffbeb;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #controlsContainer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 20;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 0 12px calc(env(safe-area-inset-bottom, 0px) + 14px);
+      gap: 6px;
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+
+    @media (min-width: 640px) {
+      #controlsContainer {
+        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+      }
+    }
+
+    #controlsContainer.reels-hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(14px);
+    }
+
+    @keyframes softPulse {
+      0%, 100% { opacity: 0.55; transform: translateY(0); }
+      50% { opacity: 0.92; transform: translateY(-2px); }
+    }
+
+    .touch-hint {
+      margin: 0;
+      pointer-events: none;
+      font-size: 0.72rem;
+      color: rgba(254, 243, 199, 0.6);
+      letter-spacing: 0.02em;
+      animation: softPulse 3.6s ease-in-out infinite;
+    }
+
+    .control-bar {
+      pointer-events: auto;
+      border-radius: 9999px;
+      padding: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      max-width: 100%;
+      overflow-x: auto;
+    }
+
+    .pill-btn {
+      touch-action: manipulation;
+      border: none;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 9999px;
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #f5f5f4;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background-color 0.22s ease, transform 0.22s ease;
+    }
+
+    .pill-btn:hover {
+      background: rgba(255, 245, 235, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .pill-btn:active {
+      transform: scale(0.95);
+    }
+
+    .pill-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    #paletteSwatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 9999px;
+      background: linear-gradient(135deg, #9f1239, #f59e0b);
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      flex-shrink: 0;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Modal */
+    #noteModal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.58);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: opacity 0.32s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    #noteModal.modal-hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96) translateY(10px);
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 384px;
+      border-radius: 26px;
+      padding: 22px;
+      color: #f5f5f4;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .modal-title {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #fef3c7;
+    }
+
+    .modal-close-btn {
+      border: none;
+      background: transparent;
+      color: rgba(214, 211, 209, 0.75);
+      padding: 6px;
+      border-radius: 9999px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: rgba(254, 243, 199, 0.72);
+      margin-bottom: 4px;
+    }
+
+    .form-input {
+      width: 100%;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 9px 14px;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      color: #ffffff;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .form-input::placeholder {
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .form-input:focus {
+      border-color: rgba(252, 211, 77, 0.75);
+    }
+
+    .modal-actions {
+      padding-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .btn-cancel {
+      border: none;
+      background: transparent;
+      padding: 8px 16px;
+      border-radius: 9999px;
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #d6d3d1;
+      cursor: pointer;
+    }
+
+    .btn-cancel:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .btn-save {
+      border: none;
+      padding: 9px 20px;
+      border-radius: 9999px;
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #ffffff;
+      background: linear-gradient(90deg, #e11d48, #d97706);
+      box-shadow: 0 8px 20px rgba(136, 19, 55, 0.45);
+      cursor: pointer;
+    }
+
+    .btn-save:hover {
+      filter: brightness(1.1);
+    }
+  </style>
+</head>
+<body class="is-locked">
+
+  <!-- Fullscreen High-DPI Botanical, Fireworks & Hand Canvas -->
+  <canvas id="bouquetCanvas"></canvas>
+
+  <!-- ======================================================================
+       FOOLPROOF DUAL-INPUT PASSWORD LOCK SCREEN (09112026)
+       ====================================================================== -->
+  <section id="lock-screen" aria-label="Şifreli Giriş Ekranı">
+    <div id="lockCard" class="lock-card">
+      <div class="lock-emblem">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="4" y="11" width="16" height="10" rx="3" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+          <path d="M12 14.5c-.6-.7-1.7-.7-2.2 0-.5.6-.4 1.5.2 2.1L12 18.4l2-1.8c.6-.6.7-1.5.2-2.1-.5-.7-1.6-.7-2.2 0Z" fill="currentColor" stroke="none" />
+        </svg>
+      </div>
+
+      <h2 class="lock-title">Sana Özel Bir Sürpriz Var</h2>
+      <p id="lockSubtitle" class="lock-subtitle">Devam etmek için 8 haneli şifreyi gir</p>
+
+      <!-- 8 Glowing Glass Digit Slots -->
+      <div id="digitSlots" class="digit-slots" role="status" aria-live="polite" aria-label="Girilen şifre haneleri">
+        <span class="digit-slot is-active">•</span>
+        <span class="digit-slot">•</span>
+        <span class="digit-slot">•</span>
+        <span class="digit-slot">•</span>
+        <span class="digit-slot">•</span>
+        <span class="digit-slot">•</span>
+        <span class="digit-slot">•</span>
+        <span class="digit-slot">•</span>
+      </div>
+
+      <!-- Real Tappable Numeric Input -->
+      <div class="pin-input-wrap">
+        <input
+          id="pin-input"
+          type="tel"
+          inputmode="numeric"
+          pattern="[0-9]*"
+          maxlength="8"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          aria-label="8 haneli şifre giriş alanı"
+          placeholder="••••••••"
+          autofocus
+        />
+      </div>
+
+      <!-- 3x4 Tactile Zero-Delay On-Screen Keypad -->
+      <div id="onscreenKeypad" class="keypad-grid">
+        <button type="button" data-digit="1" class="keypad-btn">1</button>
+        <button type="button" data-digit="2" class="keypad-btn">2</button>
+        <button type="button" data-digit="3" class="keypad-btn">3</button>
+        <button type="button" data-digit="4" class="keypad-btn">4</button>
+        <button type="button" data-digit="5" class="keypad-btn">5</button>
+        <button type="button" data-digit="6" class="keypad-btn">6</button>
+        <button type="button" data-digit="7" class="keypad-btn">7</button>
+        <button type="button" data-digit="8" class="keypad-btn">8</button>
+        <button type="button" data-digit="9" class="keypad-btn">9</button>
+
+        <button type="button" id="btnPinClear" aria-label="Temizle" class="keypad-btn keypad-action">
+          Temizle
+        </button>
+        <button type="button" data-digit="0" class="keypad-btn">0</button>
+        <button type="button" id="btnPinBackspace" aria-label="Geri Al" class="keypad-btn keypad-back">
+          ⌫
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================================
+       POETIC TYPOGRAPHY OVERLAY
+       ====================================================================== -->
+  <header id="heroHeader">
+    <div id="recipientBadge" class="cinema-reveal delay-1">
+      <span class="badge-line-left"></span>
+      <span id="recipientText">Tülay'ım İçin</span>
+      <span class="badge-line-right"></span>
+    </div>
+
+    <p id="line1Text" class="cinema-reveal delay-2">
+      Herkes çiçek alır,
+    </p>
+
+    <h1 id="line2Text" class="cinema-reveal delay-3">
+      ben senin için kodladım.
+    </h1>
+
+    <p id="personalNoteText" class="cinema-reveal delay-4">
+      Solmayan tek buket, her baktığında seni hatırlatsın diye...
+    </p>
+  </header>
+
+  <!-- Floating Status Toast -->
+  <div id="toastBanner" class="luxury-glass">Kadife Kırmızı</div>
+
+  <!-- ======================================================================
+       BOTTOM GLASSMORPHISM CONTROL BAR
+       ====================================================================== -->
+  <div id="controlsContainer">
+    <p class="touch-hint">Çiçek açtırmak için ekrana dokun ✨</p>
+
+    <nav aria-label="Buket Kontrolleri" class="luxury-glass control-bar">
+      <button id="btnReplay" type="button" class="pill-btn">
+        <svg class="pill-icon" style="color:#fcd34d" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        <span>Tekrar Aç</span>
+      </button>
+
+      <button id="btnPalette" type="button" class="pill-btn">
+        <span id="paletteSwatch"></span>
+        <span>Tema</span>
+      </button>
+
+      <button id="btnMusic" type="button" class="pill-btn">
+        <svg id="iconMusicOn" class="pill-icon" style="color:#fcd34d" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        </svg>
+        <svg id="iconMusicOff" class="pill-icon hidden" style="color:#a8a29e" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <line x1="23" y1="9" x2="17" y2="15"/>
+          <line x1="17" y1="9" x2="23" y2="15"/>
+        </svg>
+        <span id="musicBtnLabel">Müzik</span>
+      </button>
+
+      <button id="btnEditNote" type="button" class="pill-btn">
+        <svg class="pill-icon" style="color:#fda4af" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>
+        </svg>
+        <span>İsim Yaz</span>
+      </button>
+
+      <button id="btnReelsMode" type="button" class="pill-btn">
+        <svg class="pill-icon" style="color:#7dd3fc" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="3" rx="2"/>
+          <path d="m9 8 6 4-6 4Z"/>
+        </svg>
+        <span>Temiz Ekran</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ======================================================================
+       CUSTOM GLASS MODAL FOR RECIPIENT NAME & ROMANTIC NOTE
+       ====================================================================== -->
+  <div id="noteModal" class="modal-hidden">
+    <div class="luxury-glass modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">Buket Kartını Düzenle</h2>
+        <button id="btnCloseModal" type="button" class="modal-close-btn" aria-label="Kapat">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <form id="noteForm">
+        <div class="form-group">
+          <label for="fieldRecipient" class="form-label">Kime? (İsim veya Hitap)</label>
+          <input id="fieldRecipient" type="text" maxlength="32" value="Tülay'ım İçin" placeholder="Örn: Tülay'ım İçin" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="fieldLine1" class="form-label">Üst Satır</label>
+          <input id="fieldLine1" type="text" maxlength="44" value="Herkes çiçek alır," class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="fieldLine2" class="form-label">Ana Mesaj</label>
+          <input id="fieldLine2" type="text" maxlength="44" value="ben senin için kodladım." class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="fieldPersonalNote" class="form-label">Romantik Alt Not (İsteğe Bağlı)</label>
+          <input id="fieldPersonalNote" type="text" maxlength="75" value="Solmayan tek buket, her baktığında seni hatırlatsın diye..." placeholder="Kısa bir not yaz..." class="form-input" />
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btnCancelModal" class="btn-cancel">Vazgeç</button>
+          <button type="submit" class="btn-save">Kaydet &amp; Açtır</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * ============================================================================
+     * 100% SELF-CONTAINED ROMANTIC BOUQUET, FIREWORKS HEART & LOVE MUSIC
+     * "Herkes çiçek alır, ben senin için kodladım."
+     * ============================================================================
+     */
+    (function () {
+      "use strict";
+
+      // --------------------------------------------------------------------------
+      // 1. FOUR LUXURY FLORIST THEMES
+      // --------------------------------------------------------------------------
+      const FLORIST_THEMES = [
+        {
+          id: "kadife-kirmizi",
+          name: "Kadife Kırmızı",
+          bgTop: "#14070b",
+          bgCenter: "#270c14",
+          bgBottom: "#07040a",
+          rayColor: "rgba(255, 218, 175, 0.055)",
+          bokehColors: ["rgba(251, 191, 36, 0.16)", "rgba(244, 63, 94, 0.14)", "rgba(253, 230, 138, 0.12)"],
+          wrapBackDark: "#1b1116",
+          wrapBackLight: "#2f1d25",
+          wrapFrontDark: "#160d12",
+          wrapFrontMid: "#26171e",
+          wrapFrontHighlight: "#3b242f",
+          wrapTrim: "rgba(234, 195, 132, 0.65)",
+          ribbonDark: "#580c1f",
+          ribbonMid: "#9f1239",
+          ribbonHighlight: "#fda4af",
+          roseDeep: "#3b0410",
+          roseMid: "#881337",
+          roseBright: "#e11d48",
+          roseRim: "#fda4af",
+          peonyDeep: "#701a3c",
+          peonyMid: "#be185d",
+          peonyBright: "#f472b6",
+          peonyRim: "#ffe4e6",
+          lilyBase: "#fff1f2",
+          lilyTip: "#fda4af",
+          lilyStripe: "#be123c",
+          fallingPetalColors: ["#be123c", "#e11d48", "#fb7185", "#9f1239"],
+          titleGradient: "linear-gradient(90deg, #ffe4e6 0%, #fef3c7 50%, #fecdd3 100%)",
+          titleGlow: "rgba(225, 29, 72, 0.45)",
+          swatch: "linear-gradient(135deg, #9f1239, #f59e0b)"
+        },
+        {
+          id: "pudra-sakayik",
+          name: "Pudra Şakayık",
+          bgTop: "#160d16",
+          bgCenter: "#2a1728",
+          bgBottom: "#080509",
+          rayColor: "rgba(255, 232, 240, 0.06)",
+          bokehColors: ["rgba(249, 168, 212, 0.18)", "rgba(254, 243, 199, 0.14)", "rgba(232, 121, 249, 0.11)"],
+          wrapBackDark: "#cbb9b5",
+          wrapBackLight: "#eadad6",
+          wrapFrontDark: "#bfa9a4",
+          wrapFrontMid: "#dfd0cc",
+          wrapFrontHighlight: "#f7ece9",
+          wrapTrim: "rgba(196, 154, 108, 0.7)",
+          ribbonDark: "#831843",
+          ribbonMid: "#db2777",
+          ribbonHighlight: "#fbcfe8",
+          roseDeep: "#831843",
+          roseMid: "#db2777",
+          roseBright: "#f472b6",
+          roseRim: "#fff1f2",
+          peonyDeep: "#9d174d",
+          peonyMid: "#ec4899",
+          peonyBright: "#f9a8d4",
+          peonyRim: "#ffffff",
+          lilyBase: "#ffffff",
+          lilyTip: "#f9a8d4",
+          lilyStripe: "#db2777",
+          fallingPetalColors: ["#f472b6", "#f9a8d4", "#fbcfe8", "#ec4899"],
+          titleGradient: "linear-gradient(90deg, #fce7f3 0%, #ffffff 50%, #fbcfe8 100%)",
+          titleGlow: "rgba(236, 72, 153, 0.42)",
+          swatch: "linear-gradient(135deg, #ec4899, #fce7f3)"
+        },
+        {
+          id: "sampanya-altin",
+          name: "Şampanya Altın",
+          bgTop: "#161009",
+          bgCenter: "#2a1e10",
+          bgBottom: "#080503",
+          rayColor: "rgba(253, 230, 138, 0.07)",
+          bokehColors: ["rgba(251, 191, 36, 0.19)", "rgba(254, 243, 199, 0.15)", "rgba(245, 158, 11, 0.13)"],
+          wrapBackDark: "#c5b299",
+          wrapBackLight: "#ebe0cf",
+          wrapFrontDark: "#b39e82",
+          wrapFrontMid: "#d8c6ae",
+          wrapFrontHighlight: "#f7efe3",
+          wrapTrim: "rgba(212, 163, 72, 0.8)",
+          ribbonDark: "#78350f",
+          ribbonMid: "#d97706",
+          ribbonHighlight: "#fef08a",
+          roseDeep: "#78350f",
+          roseMid: "#d97706",
+          roseBright: "#fbbf24",
+          roseRim: "#fffbeb",
+          peonyDeep: "#9a3412",
+          peonyMid: "#ea580c",
+          peonyBright: "#fdba74",
+          peonyRim: "#fff7ed",
+          lilyBase: "#fffbeb",
+          lilyTip: "#fde68a",
+          lilyStripe: "#b45309",
+          fallingPetalColors: ["#f59e0b", "#fbbf24", "#fde68a", "#fdba74"],
+          titleGradient: "linear-gradient(90deg, #fef3c7 0%, #ffffff 50%, #fde68a 100%)",
+          titleGlow: "rgba(245, 158, 11, 0.45)",
+          swatch: "linear-gradient(135deg, #d97706, #fef08a)"
+        },
+        {
+          id: "gece-safiri",
+          name: "Gece Safiri",
+          bgTop: "#050a18",
+          bgCenter: "#0d1b36",
+          bgBottom: "#03060e",
+          rayColor: "rgba(186, 230, 253, 0.06)",
+          bokehColors: ["rgba(56, 189, 248, 0.16)", "rgba(224, 242, 254, 0.14)", "rgba(129, 140, 248, 0.13)"],
+          wrapBackDark: "#0f172a",
+          wrapBackLight: "#1e293b",
+          wrapFrontDark: "#0b1120",
+          wrapFrontMid: "#172033",
+          wrapFrontHighlight: "#293548",
+          wrapTrim: "rgba(203, 213, 225, 0.65)",
+          ribbonDark: "#172554",
+          ribbonMid: "#1d4ed8",
+          ribbonHighlight: "#93c5fd",
+          roseDeep: "#172554",
+          roseMid: "#1e40af",
+          roseBright: "#3b82f6",
+          roseRim: "#dbeafe",
+          peonyDeep: "#1e1b4b",
+          peonyMid: "#4338ca",
+          peonyBright: "#818cf8",
+          peonyRim: "#e0e7ff",
+          lilyBase: "#f0f9ff",
+          lilyTip: "#7dd3fc",
+          lilyStripe: "#0284c7",
+          fallingPetalColors: ["#2563eb", "#3b82f6", "#93c5fd", "#60a5fa"],
+          titleGradient: "linear-gradient(90deg, #e0f2fe 0%, #ffffff 50%, #bae6fd 100%)",
+          titleGlow: "rgba(56, 189, 248, 0.45)",
+          swatch: "linear-gradient(135deg, #1d4ed8, #bae6fd)"
+        }
+      ];
+
+      let themeIdx = 0;
+
+      // --------------------------------------------------------------------------
+      // 2. CANVAS & HIGH-DPI SETUP
+      // --------------------------------------------------------------------------
+      const canvas = document.getElementById("bouquetCanvas");
+      const ctx = canvas.getContext("2d");
+
+      let W = window.innerWidth;
+      let H = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 3);
+
+      let targetTiltX = 0;
+      let targetTiltY = 0;
+      let currentTiltX = 0;
+      let currentTiltY = 0;
+
+      function resize() {
+        W = window.innerWidth;
+        H = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 3);
+        canvas.width = Math.floor(W * dpr);
+        canvas.height = Math.floor(H * dpr);
+        canvas.style.width = W + "px";
+        canvas.style.height = H + "px";
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      // Cross-browser rounded rectangle helper
+      function drawRoundRect(context, x, y, w, h, r) {
+        const radius = Math.min(r, Math.abs(w) * 0.5, Math.abs(h) * 0.5);
+        context.beginPath();
+        context.moveTo(x + radius, y);
+        context.lineTo(x + w - radius, y);
+        context.quadraticCurveTo(x + w, y, x + w, y + radius);
+        context.lineTo(x + w, y + h - radius);
+        context.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        context.lineTo(x + radius, y + h);
+        context.quadraticCurveTo(x, y + h, x, y + h - radius);
+        context.lineTo(x, y + radius);
+        context.quadraticCurveTo(x, y, x + radius, y);
+        context.closePath();
+      }
+
+      // --------------------------------------------------------------------------
+      // 3. EASING & MATH UTILITIES
+      // --------------------------------------------------------------------------
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+      const easeOutQuart = t => 1 - Math.pow(1 - t, 4);
+      const easeOutBack = t => {
+        const c1 = 1.4;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+
+      // --------------------------------------------------------------------------
+      // 4. ATMOSPHERIC PARTICLES: BOKEH ORBS, DUST MOTES & FALLING ROSE PETALS
+      // --------------------------------------------------------------------------
+      const bokehOrbs = [];
+      const dustMotes = [];
+      const fallingPetals = [];
+      const touchSparkles = [];
+      const interactiveBlooms = [];
+
+      function initAtmosphere() {
+        const theme = FLORIST_THEMES[themeIdx];
+        bokehOrbs.length = 0;
+        dustMotes.length = 0;
+        fallingPetals.length = 0;
+
+        const orbCount = W < 600 ? 14 : 22;
+        for (let i = 0; i < orbCount; i++) {
+          bokehOrbs.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: (Math.random() * 55 + 24) * (W < 600 ? 0.75 : 1),
+            vx: (Math.random() - 0.5) * 0.14,
+            vy: -(Math.random() * 0.16 + 0.04),
+            depth: Math.random() * 0.6 + 0.2,
+            phase: Math.random() * Math.PI * 2,
+            color: theme.bokehColors[i % theme.bokehColors.length]
+          });
+        }
+
+        const dustCount = W < 600 ? 34 : 58;
+        for (let i = 0; i < dustCount; i++) {
+          dustMotes.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: Math.random() * 1.8 + 0.6,
+            vx: (Math.random() - 0.5) * 0.22,
+            vy: -(Math.random() * 0.28 + 0.08),
+            alpha: Math.random() * 0.65 + 0.2,
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+
+        const petalCount = W < 600 ? 14 : 22;
+        for (let i = 0; i < petalCount; i++) {
+          fallingPetals.push(createFallingPetal(Math.random() * W, Math.random() * H, false));
+        }
+      }
+
+      function createFallingPetal(x, y, isBurst) {
+        const theme = FLORIST_THEMES[themeIdx];
+        const angle = Math.random() * Math.PI * 2;
+        const burstSpeed = isBurst ? (Math.random() * 2.8 + 0.8) : 0;
+        return {
+          x,
+          y,
+          vx: isBurst ? Math.cos(angle) * burstSpeed : (Math.random() - 0.5) * 0.5,
+          vy: isBurst ? Math.sin(angle) * burstSpeed - 0.6 : (Math.random() * 0.85 + 0.45),
+          size: (Math.random() * 7 + 6) * (W < 600 ? 0.85 : 1),
+          rot: Math.random() * Math.PI * 2,
+          rotSpeed: (Math.random() - 0.5) * 0.045,
+          flipPhase: Math.random() * Math.PI * 2,
+          flipSpeed: Math.random() * 0.05 + 0.025,
+          swayPhase: Math.random() * Math.PI * 2,
+          color: theme.fallingPetalColors[Math.floor(Math.random() * theme.fallingPetalColors.length)],
+          alpha: isBurst ? 0.95 : (Math.random() * 0.45 + 0.45),
+          isBurst
+        };
+      }
+
+      function spawnTouchShower(x, y) {
+        const theme = FLORIST_THEMES[themeIdx];
+        if (interactiveBlooms.length > 18) interactiveBlooms.shift();
+        interactiveBlooms.push({
+          x,
+          y,
+          born: performance.now(),
+          duration: 3800,
+          radius: (Math.random() * 10 + 18) * (W < 600 ? 0.85 : 1),
+          rot: Math.random() * Math.PI * 2,
+          isPeony: Math.random() > 0.45
+        });
+
+        for (let i = 0; i < 14; i++) {
+          if (fallingPetals.length > 75) fallingPetals.shift();
+          fallingPetals.push(createFallingPetal(x, y, true));
+        }
+        for (let i = 0; i < 18; i++) {
+          if (touchSparkles.length > 140) touchSparkles.shift();
+          const a = Math.random() * Math.PI * 2;
+          const spd = Math.random() * 2.1 + 0.4;
+          touchSparkles.push({
+            x,
+            y,
+            vx: Math.cos(a) * spd,
+            vy: Math.sin(a) * spd - 0.4,
+            life: 1,
+            decay: Math.random() * 0.02 + 0.012,
+            size: Math.random() * 2.4 + 1.1,
+            color: i % 2 === 0 ? "#fde68a" : theme.roseRim
+          });
+        }
+      }
+
+      // --------------------------------------------------------------------------
+      // 5. BOTANICAL BOUQUET BLUEPRINT & FIREWORK HEART SEQUENCE
+      // --------------------------------------------------------------------------
+      let animStart = performance.now();
+      let isUnlocked = false;
+      let headerRevealedForCycle = false;
+
+      const FOLIAGE_BRANCHES = [
+        { type: "eucalyptus", angle: -0.58, len: 188, curve: -0.22, scale: 1.05, delay: 0.42 },
+        { type: "eucalyptus", angle: 0.58,  len: 188, curve: 0.22,  scale: 1.05, delay: 0.46 },
+        { type: "eucalyptus", angle: -0.28, len: 205, curve: -0.10, scale: 1.00, delay: 0.50 },
+        { type: "eucalyptus", angle: 0.28,  len: 205, curve: 0.10,  scale: 1.00, delay: 0.54 },
+        { type: "eucalyptus", angle: 0.02,  len: 212, curve: 0.03,  scale: 0.95, delay: 0.58 },
+        { type: "leaf", ox: -125, oy: -12,  angle: -2.85, size: 50, delay: 0.72 },
+        { type: "leaf", ox: 124,  oy: -10,  angle: -0.28, size: 50, delay: 0.75 },
+        { type: "leaf", ox: -62,  oy: -128, angle: -1.95, size: 48, delay: 0.78 },
+        { type: "leaf", ox: 64,   oy: -126, angle: -1.18, size: 48, delay: 0.80 },
+        { type: "leaf", ox: -85,  oy: 36,   angle: 2.65,  size: 46, delay: 0.85 },
+        { type: "leaf", ox: 85,   oy: 36,   angle: 0.48,  size: 46, delay: 0.88 }
+      ];
+
+      const BOUQUET_BLOOMS = [
+        { species: "lily",  ox: -56, oy: -115, rot: -0.28, radius: 44, delay: 0.85, depth: 0.85 },
+        { species: "lily",  ox: 58,  oy: -112, rot: 0.30,  radius: 44, delay: 0.92, depth: 0.85 },
+        { species: "rose",  ox: 0,   oy: -124, rot: 0.02,  radius: 42, delay: 0.98, depth: 0.9 },
+        { species: "peony", ox: -92, oy: -58,  rot: -0.35, radius: 47, delay: 1.08, depth: 0.95 },
+        { species: "peony", ox: 92,  oy: -56,  rot: 0.35,  radius: 47, delay: 1.14, depth: 0.95 },
+        { species: "rose",  ox: -36, oy: -68,  rot: -0.14, radius: 46, delay: 1.20, depth: 1.0 },
+        { species: "rose",  ox: 38,  oy: -66,  rot: 0.16,  radius: 46, delay: 1.26, depth: 1.0 },
+        { species: "lily",  ox: -108, oy: -2,  rot: -0.52, radius: 42, delay: 1.32, depth: 1.02 },
+        { species: "lily",  ox: 108,  oy: 0,   rot: 0.52,  radius: 42, delay: 1.36, depth: 1.02 },
+        { species: "rose",  ox: 0,    oy: -18, rot: 0.0,   radius: 52, delay: 1.40, depth: 1.12 },
+        { species: "peony", ox: -58,  oy: -4,  rot: -0.22, radius: 48, delay: 1.48, depth: 1.08 },
+        { species: "peony", ox: 58,   oy: -2,  rot: 0.22,  radius: 48, delay: 1.54, depth: 1.08 },
+        { species: "rose",  ox: -28,  oy: 34,  rot: -0.12, radius: 44, delay: 1.62, depth: 1.15 },
+        { species: "rose",  ox: 30,   oy: 35,  rot: 0.14,  radius: 44, delay: 1.68, depth: 1.15 }
+      ];
+
+      const BABYS_BREATH_CLUSTERS = [
+        { ox: -78,  oy: -95,  delay: 1.55, scale: 1.0 },
+        { ox: 80,   oy: -92,  delay: 1.60, scale: 1.0 },
+        { ox: -18,  oy: -95,  delay: 1.65, scale: 0.9 },
+        { ox: 22,   oy: -94,  delay: 1.68, scale: 0.9 },
+        { ox: -116, oy: -32,  delay: 1.72, scale: 1.05 },
+        { ox: 116,  oy: -30,  delay: 1.75, scale: 1.05 },
+        { ox: -78,  oy: 24,   delay: 1.80, scale: 0.95 },
+        { ox: 80,   oy: 25,   delay: 1.84, scale: 0.95 },
+        { ox: 0,    oy: 16,   delay: 1.88, scale: 0.85 }
+      ];
+
+      // Phase 1: 4-Corner Fireworks -> Beating Heart -> "TÜLAYIMMM"
+      const fireworkRockets = [];
+      const rocketTrails = [];
+      const shockwaves = [];
+      const ambientSparks = [];
+      const heartParticles = [];
+
+      function getHeartGeometry() {
+        const isMobile = W < 640;
+        const unit = clamp(Math.min(W * (isMobile ? 0.0235 : 0.0175), H * 0.0155), 8.2, 16.5);
+        const cx = W * 0.5;
+        const cy = H * (isMobile ? 0.45 : 0.46);
+        return { cx, cy, unit };
+      }
+
+      function initFireworkHeartSequence() {
+        fireworkRockets.length = 0;
+        rocketTrails.length = 0;
+        shockwaves.length = 0;
+        ambientSparks.length = 0;
+        heartParticles.length = 0;
+
+        const { cx, cy } = getHeartGeometry();
+        const spreadX = Math.min(W * 0.22, 195);
+        const spreadY = Math.min(H * 0.12, 105);
+
+        const rocketBlueprints = [
+          // Wave 1 from all 4 corners
+          { sx: -16,     sy: -16,     tx: cx - spreadX,        ty: cy - spreadY,        launch: 0.02, dur: 0.50, hue: "#fb7185" },
+          { sx: W + 16,  sy: -16,     tx: cx + spreadX,        ty: cy - spreadY,        launch: 0.06, dur: 0.52, hue: "#fbbf24" },
+          { sx: -16,     sy: H + 16,  tx: cx - spreadX * 0.85, ty: cy + spreadY * 0.72, launch: 0.10, dur: 0.54, hue: "#f43f5e" },
+          { sx: W + 16,  sy: H + 16,  tx: cx + spreadX * 0.85, ty: cy + spreadY * 0.72, launch: 0.14, dur: 0.54, hue: "#fde68a" },
+          // Wave 2 from all 4 corners
+          { sx: -16,     sy: -16,     tx: cx - spreadX * 0.42, ty: cy - spreadY * 0.35, launch: 0.26, dur: 0.50, hue: "#fda4af" },
+          { sx: W + 16,  sy: -16,     tx: cx + spreadX * 0.42, ty: cy - spreadY * 0.35, launch: 0.30, dur: 0.51, hue: "#f59e0b" },
+          { sx: -16,     sy: H + 16,  tx: cx - spreadX * 0.35, ty: cy + spreadY * 0.25, launch: 0.34, dur: 0.53, hue: "#fb7185" },
+          { sx: W + 16,  sy: H + 16,  tx: cx + spreadX * 0.35, ty: cy + spreadY * 0.25, launch: 0.38, dur: 0.53, hue: "#fef08a" }
+        ];
+
+        const totalHeartEmbers = 384;
+        const embersPerRocket = Math.floor(totalHeartEmbers / rocketBlueprints.length);
+
+        const heartSlots = [];
+        for (let i = 0; i < totalHeartEmbers; i++) {
+          const isInnerHalo = i % 4 === 0;
+          const theta = (i / totalHeartEmbers) * Math.PI * 2;
+          const layerScale = isInnerHalo ? (0.86 + Math.random() * 0.08) : (0.97 + Math.random() * 0.06);
+          const hx = 16 * Math.pow(Math.sin(theta), 3) * layerScale;
+          const hy = -(13 * Math.cos(theta) - 5 * Math.cos(2 * theta) - 2 * Math.cos(3 * theta) - Math.cos(4 * theta)) * layerScale;
+          heartSlots.push({ hx, hy, isInnerHalo });
+        }
+        for (let i = heartSlots.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [heartSlots[i], heartSlots[j]] = [heartSlots[j], heartSlots[i]];
+        }
+
+        const palette = ["#ffe4e6", "#fda4af", "#fb7185", "#f43f5e", "#fde68a", "#fbbf24", "#ffffff"];
+        let slotCursor = 0;
+
+        rocketBlueprints.forEach((bp, rIdx) => {
+          const burstTime = bp.launch + bp.dur;
+          const assignedEmbers = [];
+
+          for (let k = 0; k < embersPerRocket; k++) {
+            const slot = heartSlots[slotCursor++];
+            const burstAngle = (k / embersPerRocket) * Math.PI * 2 + (Math.random() - 0.5) * 0.25;
+            const burstSpeed = (Math.random() * 145 + 75) * (W < 600 ? 0.72 : 1);
+
+            assignedEmbers.push({
+              bornTime: burstTime,
+              x: bp.tx,
+              y: bp.ty,
+              vx: Math.cos(burstAngle) * burstSpeed,
+              vy: Math.sin(burstAngle) * burstSpeed,
+              hx: slot.hx,
+              hy: slot.hy,
+              isInnerHalo: slot.isInnerHalo,
+              size: slot.isInnerHalo ? (Math.random() * 1.6 + 1.1) : (Math.random() * 2.2 + 1.4),
+              color: palette[(rIdx + k) % palette.length],
+              phase: Math.random() * Math.PI * 2,
+              swirlDir: rIdx % 2 === 0 ? 1 : -1,
+              dissolveVx: (Math.random() - 0.5) * 42,
+              dissolveVy: -(Math.random() * 95 + 55)
+            });
+          }
+
+          fireworkRockets.push({
+            ...bp,
+            burstTime,
+            exploded: false,
+            assignedEmbers
+          });
+        });
+      }
+
+      function triggerRocketExplosion(rocket, elapsed) {
+        rocket.exploded = true;
+
+        shockwaves.push({
+          x: rocket.tx,
+          y: rocket.ty,
+          born: elapsed,
+          maxR: (W < 600 ? 95 : 145),
+          color: rocket.hue
+        });
+
+        const sparkColors = ["#fff1f2", "#fda4af", "#fb7185", "#fde68a", "#fbbf24"];
+        for (let i = 0; i < 42; i++) {
+          const ang = (i / 42) * Math.PI * 2 + Math.random() * 0.18;
+          const spd = (Math.random() * 210 + 60) * (W < 600 ? 0.75 : 1);
+          ambientSparks.push({
+            x: rocket.tx,
+            y: rocket.ty,
+            px: rocket.tx,
+            py: rocket.ty,
+            vx: Math.cos(ang) * spd,
+            vy: Math.sin(ang) * spd,
+            born: elapsed,
+            life: Math.random() * 0.65 + 0.55,
+            size: Math.random() * 2.1 + 1.0,
+            color: sparkColors[i % sparkColors.length]
+          });
+        }
+
+        rocket.assignedEmbers.forEach(em => heartParticles.push(em));
+      }
+
+      function updateAndDrawFireworkHeartPhase(elapsed, timeSec, dt, px, py) {
+        if (!isUnlocked || elapsed > 4.65) return;
+
+        const { cx, cy, unit } = getHeartGeometry();
+        const heartCenterX = cx + px * 16;
+        const heartCenterY = cy + py * 14;
+
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+
+        // 1. 4-Corner Rockets
+        for (let i = 0; i < fireworkRockets.length; i++) {
+          const r = fireworkRockets[i];
+          if (elapsed < r.launch) continue;
+
+          if (!r.exploded) {
+            const p = clamp((elapsed - r.launch) / r.dur, 0, 1);
+            const ep = 1 - Math.pow(1 - p, 2.2);
+            const arcLift = Math.sin(p * Math.PI) * -45;
+            const rx = lerp(r.sx, r.tx, ep);
+            const ry = lerp(r.sy, r.ty, ep) + arcLift;
+
+            for (let t = 0; t < 2; t++) {
+              rocketTrails.push({
+                x: rx + (Math.random() - 0.5) * 4,
+                y: ry + (Math.random() - 0.5) * 4,
+                vx: (Math.random() - 0.5) * 18,
+                vy: (Math.random() - 0.5) * 18 + 12,
+                born: elapsed,
+                life: 0.34,
+                size: Math.random() * 2.2 + 1.1,
+                color: t === 0 ? "#fef08a" : r.hue
+              });
+            }
+
+            const headGrad = ctx.createRadialGradient(rx, ry, 0, rx, ry, 14);
+            headGrad.addColorStop(0, "#ffffff");
+            headGrad.addColorStop(0.4, r.hue);
+            headGrad.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = headGrad;
+            ctx.beginPath();
+            ctx.arc(rx, ry, 14, 0, Math.PI * 2);
+            ctx.fill();
+
+            if (p >= 1) {
+              triggerRocketExplosion(r, elapsed);
+            }
+          }
+        }
+
+        // 2. Comet Trail Sparks
+        for (let i = rocketTrails.length - 1; i >= 0; i--) {
+          const tr = rocketTrails[i];
+          const age = elapsed - tr.born;
+          if (age >= tr.life) {
+            rocketTrails.splice(i, 1);
+            continue;
+          }
+          tr.x += tr.vx * dt;
+          tr.y += tr.vy * dt;
+          const alpha = 1 - age / tr.life;
+          ctx.globalAlpha = alpha * 0.85;
+          ctx.fillStyle = tr.color;
+          ctx.beginPath();
+          ctx.arc(tr.x, tr.y, tr.size * alpha, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 3. Shockwave Rings
+        for (let i = shockwaves.length - 1; i >= 0; i--) {
+          const sw = shockwaves[i];
+          const age = elapsed - sw.born;
+          const dur = 0.58;
+          if (age >= dur) {
+            shockwaves.splice(i, 1);
+            continue;
+          }
+          const p = easeOutQuart(age / dur);
+          ctx.globalAlpha = (1 - p) * 0.65;
+          ctx.strokeStyle = sw.color;
+          ctx.lineWidth = (1 - p) * 3.2;
+          ctx.beginPath();
+          ctx.arc(sw.x, sw.y, sw.maxR * p, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // 4. Radial Firework Sparks
+        for (let i = ambientSparks.length - 1; i >= 0; i--) {
+          const sp = ambientSparks[i];
+          const age = elapsed - sp.born;
+          if (age >= sp.life) {
+            ambientSparks.splice(i, 1);
+            continue;
+          }
+          sp.px = sp.x;
+          sp.py = sp.y;
+          sp.vx *= 0.95;
+          sp.vy = sp.vy * 0.95 + 145 * dt;
+          sp.x += sp.vx * dt;
+          sp.y += sp.vy * dt;
+
+          const alpha = 1 - age / sp.life;
+          ctx.globalAlpha = alpha * 0.9;
+          ctx.strokeStyle = sp.color;
+          ctx.lineWidth = sp.size * alpha;
+          ctx.beginPath();
+          ctx.moveTo(sp.px, sp.py);
+          ctx.lineTo(sp.x, sp.y);
+          ctx.stroke();
+        }
+
+        // 5. Heart Ambient Aura
+        const heartGlowIn = clamp((elapsed - 1.02) / 0.62, 0, 1);
+        const heartDissolve = clamp((elapsed - 3.75) / 0.65, 0, 1);
+        const heartMasterAlpha = heartGlowIn * (1 - heartDissolve);
+
+        if (heartMasterAlpha > 0.01) {
+          const pulse = 1 + Math.sin(elapsed * 5.2) * 0.045;
+          const auraR = unit * 22 * pulse;
+          const aura = ctx.createRadialGradient(heartCenterX, heartCenterY, unit * 2, heartCenterX, heartCenterY, auraR);
+          aura.addColorStop(0, `rgba(244, 63, 94, ${0.28 * heartMasterAlpha})`);
+          aura.addColorStop(0.55, `rgba(251, 191, 36, ${0.12 * heartMasterAlpha})`);
+          aura.addColorStop(1, "rgba(0, 0, 0, 0)");
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = aura;
+          ctx.beginPath();
+          ctx.arc(heartCenterX, heartCenterY, auraR, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 6. Converging Beating Heart Embers -> Golden Stardust Dissolve
+        const pulseScale = 1 + Math.sin(elapsed * 5.2) * 0.045 * heartGlowIn;
+        for (let i = 0; i < heartParticles.length; i++) {
+          const hp = heartParticles[i];
+          const age = elapsed - hp.bornTime;
+          if (age < 0) continue;
+
+          const targetX = heartCenterX + hp.hx * unit * pulseScale;
+          const targetY = heartCenterY + hp.hy * unit * pulseScale;
+
+          if (elapsed < 3.75) {
+            if (age < 0.32) {
+              hp.vx *= 0.93;
+              hp.vy *= 0.93;
+              hp.x += hp.vx * dt;
+              hp.y += hp.vy * dt;
+            } else {
+              const convAge = age - 0.32;
+              const pull = clamp(convAge * 5.0, 2.0, 9.8);
+              const dx = targetX - hp.x;
+              const dy = targetY - hp.y;
+              const dist = Math.hypot(dx, dy);
+              const swirlStrength = clamp(dist / 160, 0, 1) * 2.1 * hp.swirlDir;
+              hp.x += (dx * pull - dy * swirlStrength) * dt;
+              hp.y += (dy * pull + dx * swirlStrength) * dt;
+            }
+          } else {
+            hp.x += (hp.dissolveVx + Math.sin(timeSec * 4 + hp.phase) * 22) * dt;
+            hp.y += hp.dissolveVy * dt;
+          }
+
+          const twinkle = 0.65 + 0.35 * Math.sin(timeSec * 9 + hp.phase);
+          const alpha = (1 - heartDissolve) * twinkle;
+          if (alpha <= 0.01) continue;
+
+          ctx.globalAlpha = alpha;
+          ctx.fillStyle = hp.color;
+          ctx.shadowColor = hp.color;
+          ctx.shadowBlur = hp.isInnerHalo ? 6 : 11;
+          ctx.beginPath();
+          ctx.arc(hp.x, hp.y, hp.size * (1 - heartDissolve * 0.35), 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+        // 7. Glowing "TÜLAYIMMM" Lettering Inside the Heart
+        const textIn = easeOutBack(clamp((elapsed - 1.2) / 0.62, 0, 1));
+        const textOut = easeOutCubic(clamp((elapsed - 3.72) / 0.58, 0, 1));
+        const textAlpha = clamp((elapsed - 1.2) / 0.45, 0, 1) * (1 - textOut);
+
+        if (textAlpha > 0.01) {
+          ctx.save();
+          const driftUp = -textOut * 38;
+          const textScale = lerp(0.76, 1.0, textIn) * (1 + Math.sin(elapsed * 5.2) * 0.025) + textOut * 0.08;
+          ctx.translate(heartCenterX, heartCenterY + unit * 0.6 + driftUp);
+          ctx.scale(textScale, textScale);
+          ctx.globalAlpha = textAlpha;
+
+          const fontSize = Math.round(clamp(unit * 2.35, 22, 42));
+          ctx.font = `italic 700 ${fontSize}px "Palatino Linotype", "Book Antiqua", Georgia, serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+
+          const textWidth = ctx.measureText("TÜLAYIMMM").width;
+          const textGrad = ctx.createLinearGradient(-textWidth * 0.55, -fontSize * 0.4, textWidth * 0.55, fontSize * 0.4);
+          textGrad.addColorStop(0, "#ffe4e6");
+          textGrad.addColorStop(0.32, "#fef3c7");
+          textGrad.addColorStop(0.55, "#ffffff");
+          textGrad.addColorStop(0.78, "#fde68a");
+          textGrad.addColorStop(1, "#fecdd3");
+
+          ctx.shadowColor = "rgba(244, 63, 94, 0.92)";
+          ctx.shadowBlur = 24;
+          ctx.fillStyle = textGrad;
+          ctx.fillText("TÜLAYIMMM", 0, 0);
+
+          ctx.shadowColor = "rgba(251, 191, 36, 0.78)";
+          ctx.shadowBlur = 10;
+          ctx.fillText("TÜLAYIMMM", 0, 0);
+
+          ctx.restore();
+        }
+      }
+
+      // --------------------------------------------------------------------------
+      // 6. PAINTERLY STUDIO BACKDROP, ARTISTIC HAND & BOUQUET LAYERS
+      // --------------------------------------------------------------------------
+      function drawStudioBackdrop(timeSec, px, py) {
+        const theme = FLORIST_THEMES[themeIdx];
+
+        const cx = W * 0.5 + px * 12;
+        const cy = H * 0.52 + py * 12;
+        const maxR = Math.max(W, H) * 0.85;
+
+        const bgGrad = ctx.createRadialGradient(cx, cy, 20, cx, cy, maxR);
+        bgGrad.addColorStop(0, theme.bgCenter);
+        bgGrad.addColorStop(0.58, theme.bgTop);
+        bgGrad.addColorStop(1, theme.bgBottom);
+
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, W, H);
+
+        // Volumetric Studio Light Rays
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        const rayOriginX = W * 0.46 + px * 18;
+        const rayOriginY = -H * 0.1;
+
+        for (let i = 0; i < 4; i++) {
+          const spread = (i - 1.5) * 0.22 + Math.sin(timeSec * 0.35 + i) * 0.025;
+          const beamWidth = W * (0.24 + i * 0.04);
+          const endX = rayOriginX + Math.sin(spread) * H * 1.15;
+          const endY = H * 1.05;
+
+          const rayGrad = ctx.createLinearGradient(rayOriginX, rayOriginY, endX, endY);
+          rayGrad.addColorStop(0, theme.rayColor);
+          rayGrad.addColorStop(0.65, "rgba(255, 240, 220, 0.015)");
+          rayGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+          ctx.fillStyle = rayGrad;
+          ctx.beginPath();
+          ctx.moveTo(rayOriginX - 40, rayOriginY);
+          ctx.lineTo(rayOriginX + 40, rayOriginY);
+          ctx.lineTo(endX + beamWidth * 0.5, endY);
+          ctx.lineTo(endX - beamWidth * 0.5, endY);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Warm Out-of-Focus Bokeh Light Orbs
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < bokehOrbs.length; i++) {
+          const orb = bokehOrbs[i];
+          orb.x += orb.vx;
+          orb.y += orb.vy;
+
+          if (orb.y < -orb.r * 1.5) {
+            orb.y = H + orb.r * 1.2;
+            orb.x = Math.random() * W;
+          }
+          if (orb.x < -orb.r) orb.x = W + orb.r;
+          if (orb.x > W + orb.r) orb.x = -orb.r;
+
+          const drawX = orb.x + px * 28 * orb.depth;
+          const drawY = orb.y + py * 28 * orb.depth;
+          const breathe = 1 + Math.sin(timeSec * 0.9 + orb.phase) * 0.08;
+          const r = orb.r * breathe;
+
+          const g = ctx.createRadialGradient(drawX, drawY, r * 0.1, drawX, drawY, r);
+          g.addColorStop(0, orb.color);
+          g.addColorStop(0.72, orb.color);
+          g.addColorStop(0.92, "rgba(255, 255, 255, 0.04)");
+          g.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(drawX, drawY, r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // Artistic Forearm, Tailored Sleeve, Ivory Cuff & Back Palm
+      function drawRomanticHandBack(cx, cy, scale) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scale, scale);
+        ctx.rotate(-0.075);
+
+        const sleeveGrad = ctx.createLinearGradient(-44, 215, 48, 215);
+        sleeveGrad.addColorStop(0, "#07080d");
+        sleeveGrad.addColorStop(0.32, "#161924");
+        sleeveGrad.addColorStop(0.68, "#232838");
+        sleeveGrad.addColorStop(1, "#0b0d14");
+
+        ctx.fillStyle = sleeveGrad;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.72)";
+        ctx.shadowBlur = 26;
+        ctx.beginPath();
+        ctx.moveTo(-34, 216);
+        ctx.lineTo(34, 216);
+        ctx.lineTo(52, 760);
+        ctx.lineTo(-46, 760);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255, 240, 225, 0.14)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // Crisp Ivory Shirt Cuff
+        const cuffGrad = ctx.createLinearGradient(-30, 198, 30, 198);
+        cuffGrad.addColorStop(0, "#cbd5e1");
+        cuffGrad.addColorStop(0.45, "#fffaf5");
+        cuffGrad.addColorStop(0.85, "#f1f5f9");
+        cuffGrad.addColorStop(1, "#94a3b8");
+
+        ctx.fillStyle = cuffGrad;
+        drawRoundRect(ctx, -29, 200, 58, 20, 5);
+        ctx.fill();
+
+        // Rose-Gold Cufflink
+        const linkGrad = ctx.createRadialGradient(21, 210, 1, 22, 211, 5.5);
+        linkGrad.addColorStop(0, "#fef08a");
+        linkGrad.addColorStop(0.6, "#d97706");
+        linkGrad.addColorStop(1, "#78350f");
+        ctx.fillStyle = linkGrad;
+        ctx.beginPath();
+        ctx.arc(22, 211, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Shaded Wrist & Back Palm
+        const palmGrad = ctx.createLinearGradient(-32, 135, 36, 155);
+        palmGrad.addColorStop(0, "#a66849");
+        palmGrad.addColorStop(0.38, "#d99977");
+        palmGrad.addColorStop(0.75, "#eeb698");
+        palmGrad.addColorStop(1, "#b87654");
+
+        ctx.fillStyle = palmGrad;
+        ctx.beginPath();
+        ctx.moveTo(-24, 202);
+        ctx.quadraticCurveTo(-31, 168, -32, 134);
+        ctx.bezierCurveTo(-32, 108, -18, 94, 0, 94);
+        ctx.bezierCurveTo(22, 94, 35, 112, 34, 142);
+        ctx.quadraticCurveTo(31, 174, 24, 202);
+        ctx.closePath();
+        ctx.fill();
+
+        const hollowGrad = ctx.createRadialGradient(0, 122, 4, 0, 122, 30);
+        hollowGrad.addColorStop(0, "rgba(58, 24, 14, 0.55)");
+        hollowGrad.addColorStop(1, "rgba(58, 24, 14, 0)");
+        ctx.fillStyle = hollowGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, 122, 26, 22, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      // Curled Fingers & Thumb Holding Front Ribbon Waist
+      function drawRomanticHandFront(cx, cy, scale) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scale, scale);
+        ctx.rotate(-0.075);
+
+        ctx.save();
+        ctx.fillStyle = "rgba(20, 6, 12, 0.36)";
+        drawRoundRect(ctx, -24, 112, 46, 38, 16);
+        ctx.fill();
+        ctx.restore();
+
+        const fingers = [
+          { y: 112, xStart: -28, xEnd: 17, h: 9.2, tilt: -0.05 },
+          { y: 121, xStart: -30, xEnd: 20, h: 9.6, tilt: -0.02 },
+          { y: 130, xStart: -29, xEnd: 18, h: 9.1, tilt: 0.02 },
+          { y: 139, xStart: -26, xEnd: 13, h: 8.2, tilt: 0.06 }
+        ];
+
+        fingers.forEach((f) => {
+          ctx.save();
+          ctx.translate(0, f.y);
+          ctx.rotate(f.tilt);
+
+          const fGrad = ctx.createLinearGradient(f.xStart, -f.h * 0.5, f.xEnd, f.h * 0.6);
+          fGrad.addColorStop(0, "#9c5d3f");
+          fGrad.addColorStop(0.28, "#d99876");
+          fGrad.addColorStop(0.62, "#f4bea0");
+          fGrad.addColorStop(0.88, "#e3a280");
+          fGrad.addColorStop(1, "#b47150");
+
+          ctx.fillStyle = fGrad;
+          ctx.shadowColor = "rgba(18, 5, 10, 0.45)";
+          ctx.shadowBlur = 5;
+          ctx.shadowOffsetY = 2.5;
+
+          const width = f.xEnd - f.xStart;
+          drawRoundRect(ctx, f.xStart, -f.h * 0.5, width, f.h, f.h * 0.48);
+          ctx.fill();
+
+          ctx.shadowBlur = 0;
+          ctx.shadowOffsetY = 0;
+          ctx.strokeStyle = "rgba(255, 232, 218, 0.35)";
+          ctx.lineWidth = 0.85;
+          ctx.beginPath();
+          ctx.moveTo(f.xStart + 8, -f.h * 0.28);
+          ctx.quadraticCurveTo((f.xStart + f.xEnd) * 0.5, -f.h * 0.38, f.xEnd - 5, -f.h * 0.22);
+          ctx.stroke();
+
+          ctx.fillStyle = "rgba(255, 240, 232, 0.32)";
+          ctx.beginPath();
+          ctx.ellipse(f.xEnd - 4.2, -0.3, 3.0, f.h * 0.26, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        });
+
+        // Opposing Thumb
+        ctx.save();
+        ctx.translate(22, 128);
+        ctx.rotate(-0.62);
+
+        const thumbGrad = ctx.createLinearGradient(-16, -6, 18, 7);
+        thumbGrad.addColorStop(0, "#b57251");
+        thumbGrad.addColorStop(0.45, "#eba888");
+        thumbGrad.addColorStop(0.8, "#f6c3a7");
+        thumbGrad.addColorStop(1, "#c47e5c");
+
+        ctx.fillStyle = thumbGrad;
+        ctx.shadowColor = "rgba(18, 5, 10, 0.48)";
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetY = 2;
+
+        drawRoundRect(ctx, -16, -5.8, 34, 11.6, 5.8);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.fillStyle = "rgba(255, 240, 232, 0.34)";
+        ctx.beginPath();
+        ctx.ellipse(-11.5, -0.5, 3.2, 2.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+        ctx.restore();
+      }
+
+      function drawWrappingPaperBack(cx, cy, scale, openProg, theme) {
+        if (openProg <= 0.01) return;
+        const p = easeOutQuart(clamp(openProg, 0, 1));
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scale * lerp(0.72, 1, p), scale * lerp(0.65, 1, p));
+        ctx.globalAlpha = clamp(p * 1.3, 0, 1);
+
+        const wings = [
+          { x1: -165, y1: -145, x2: -25, y2: -175, bx: -18, by: 165, dark: theme.wrapBackDark, light: theme.wrapBackLight },
+          { x1: 25,   y1: -175, x2: 165, y2: -145, bx: 18,  by: 165, dark: theme.wrapBackLight, light: theme.wrapBackDark },
+          { x1: -95,  y1: -178, x2: 95,  y2: -178, bx: 0,   by: 155, dark: theme.wrapBackDark, light: theme.wrapBackLight }
+        ];
+
+        wings.forEach(w => {
+          const grad = ctx.createLinearGradient(w.x1, w.y1, w.x2, w.by);
+          grad.addColorStop(0, w.light);
+          grad.addColorStop(0.55, w.dark);
+          grad.addColorStop(1, "#090608");
+
+          ctx.fillStyle = grad;
+          ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
+          ctx.shadowBlur = 22;
+
+          ctx.beginPath();
+          ctx.moveTo(w.x1, w.y1);
+          ctx.quadraticCurveTo((w.x1 + w.x2) * 0.5, w.y1 - 14, w.x2, w.y2);
+          ctx.lineTo(w.bx, w.by);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = theme.wrapTrim;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        });
+
+        const pocketGrad = ctx.createRadialGradient(0, -30, 10, 0, -20, 145);
+        pocketGrad.addColorStop(0, "rgba(0, 0, 0, 0.78)");
+        pocketGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+        ctx.fillStyle = pocketGrad;
+        ctx.beginPath();
+        ctx.ellipse(0, -30, 135, 95, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawWrappingPaperFrontAndRibbon(cx, cy, scale, openProg, ribbonProg, timeSec, sway) {
+        if (openProg <= 0.01) return;
+        const theme = FLORIST_THEMES[themeIdx];
+        const p = easeOutQuart(clamp(openProg, 0, 1));
+        const rp = easeOutBack(clamp(ribbonProg, 0, 1));
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scale, scale);
+        ctx.globalAlpha = clamp(p * 1.25, 0, 1);
+
+        // Bundled stems
+        const stemGrad = ctx.createLinearGradient(-16, 105, 16, 215);
+        stemGrad.addColorStop(0, "#064e3b");
+        stemGrad.addColorStop(0.5, "#15803d");
+        stemGrad.addColorStop(1, "#052e16");
+
+        ctx.fillStyle = stemGrad;
+        ctx.beginPath();
+        ctx.moveTo(-16, 100);
+        ctx.lineTo(16, 100);
+        ctx.lineTo(24, 215);
+        ctx.lineTo(-24, 215);
+        ctx.closePath();
+        ctx.fill();
+
+        // Lower paper skirt
+        const skirtGrad = ctx.createLinearGradient(-55, 105, 55, 225);
+        skirtGrad.addColorStop(0, theme.wrapFrontDark);
+        skirtGrad.addColorStop(0.5, theme.wrapFrontMid);
+        skirtGrad.addColorStop(1, theme.wrapFrontDark);
+
+        ctx.fillStyle = skirtGrad;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.6)";
+        ctx.shadowBlur = 18;
+        ctx.beginPath();
+        ctx.moveTo(-18, 102);
+        ctx.lineTo(18, 102);
+        ctx.lineTo(68, 222);
+        ctx.lineTo(0, 206);
+        ctx.lineTo(-68, 222);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = theme.wrapTrim;
+        ctx.lineWidth = 1.1;
+        ctx.stroke();
+
+        // Left front flap
+        const leftGrad = ctx.createLinearGradient(-155, 15, 22, 110);
+        leftGrad.addColorStop(0, theme.wrapFrontHighlight);
+        leftGrad.addColorStop(0.55, theme.wrapFrontMid);
+        leftGrad.addColorStop(1, theme.wrapFrontDark);
+
+        ctx.fillStyle = leftGrad;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+        ctx.shadowBlur = 22;
+        ctx.shadowOffsetY = -4;
+
+        ctx.beginPath();
+        ctx.moveTo(-152, 8);
+        ctx.quadraticCurveTo(-68, 34, 28, 96);
+        ctx.lineTo(14, 112);
+        ctx.lineTo(-24, 112);
+        ctx.quadraticCurveTo(-96, 68, -152, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = theme.wrapTrim;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // Right front flap
+        const rightGrad = ctx.createLinearGradient(155, 8, -22, 112);
+        rightGrad.addColorStop(0, theme.wrapFrontHighlight);
+        rightGrad.addColorStop(0.5, theme.wrapFrontMid);
+        rightGrad.addColorStop(1, theme.wrapFrontDark);
+
+        ctx.fillStyle = rightGrad;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.72)";
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetX = -5;
+
+        ctx.beginPath();
+        ctx.moveTo(152, 8);
+        ctx.quadraticCurveTo(66, 36, -26, 98);
+        ctx.lineTo(-16, 114);
+        ctx.lineTo(24, 114);
+        ctx.quadraticCurveTo(96, 68, 152, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = theme.wrapTrim;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        // Satin Silk Ribbon Band & Bow
+        if (ribbonProg > 0.01) {
+          ctx.save();
+          ctx.translate(0, 105);
+          ctx.scale(rp, rp);
+          ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+          ctx.shadowBlur = 14;
+
+          const bandGrad = ctx.createLinearGradient(-26, -8, 26, 8);
+          bandGrad.addColorStop(0, theme.ribbonDark);
+          bandGrad.addColorStop(0.35, theme.ribbonHighlight);
+          bandGrad.addColorStop(0.65, theme.ribbonMid);
+          bandGrad.addColorStop(1, theme.ribbonDark);
+
+          ctx.fillStyle = bandGrad;
+          drawRoundRect(ctx, -26, -8, 52, 16, 6);
+          ctx.fill();
+
+          const tailSway = Math.sin(timeSec * 1.6) * 6 + sway * 0.4;
+
+          const leftTailGrad = ctx.createLinearGradient(0, 0, -45, 105);
+          leftTailGrad.addColorStop(0, theme.ribbonDark);
+          leftTailGrad.addColorStop(0.45, theme.ribbonMid);
+          leftTailGrad.addColorStop(0.75, theme.ribbonHighlight);
+          leftTailGrad.addColorStop(1, theme.ribbonMid);
+
+          ctx.fillStyle = leftTailGrad;
+          ctx.beginPath();
+          ctx.moveTo(-6, 4);
+          ctx.quadraticCurveTo(-34 + tailSway * 0.5, 48, -48 + tailSway, 104);
+          ctx.lineTo(-34 + tailSway, 95);
+          ctx.lineTo(-24 + tailSway, 108);
+          ctx.quadraticCurveTo(-18 + tailSway * 0.4, 52, 2, 6);
+          ctx.closePath();
+          ctx.fill();
+
+          const rightTailGrad = ctx.createLinearGradient(0, 0, 45, 105);
+          rightTailGrad.addColorStop(0, theme.ribbonDark);
+          rightTailGrad.addColorStop(0.45, theme.ribbonMid);
+          rightTailGrad.addColorStop(0.75, theme.ribbonHighlight);
+          rightTailGrad.addColorStop(1, theme.ribbonMid);
+
+          ctx.fillStyle = rightTailGrad;
+          ctx.beginPath();
+          ctx.moveTo(6, 4);
+          ctx.quadraticCurveTo(34 + tailSway * 0.5, 48, 48 + tailSway, 104);
+          ctx.lineTo(34 + tailSway, 95);
+          ctx.lineTo(24 + tailSway, 108);
+          ctx.quadraticCurveTo(18 + tailSway * 0.4, 52, -2, 6);
+          ctx.closePath();
+          ctx.fill();
+
+          [-1, 1].forEach(dir => {
+            ctx.save();
+            ctx.scale(dir, 1);
+
+            const loopGrad = ctx.createLinearGradient(0, -18, 62, 16);
+            loopGrad.addColorStop(0, theme.ribbonDark);
+            loopGrad.addColorStop(0.42, theme.ribbonMid);
+            loopGrad.addColorStop(0.72, theme.ribbonHighlight);
+            loopGrad.addColorStop(1, theme.ribbonDark);
+
+            ctx.fillStyle = loopGrad;
+            ctx.beginPath();
+            ctx.moveTo(4, -3);
+            ctx.bezierCurveTo(36, -32, 72, -16, 64, 8);
+            ctx.bezierCurveTo(58, 26, 26, 20, 4, 5);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = "rgba(0, 0, 0, 0.34)";
+            ctx.beginPath();
+            ctx.moveTo(8, 0);
+            ctx.quadraticCurveTo(32, -8, 46, 2);
+            ctx.quadraticCurveTo(30, 8, 8, 2);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+          });
+
+          const knotGrad = ctx.createRadialGradient(-3, -3, 1, 0, 0, 14);
+          knotGrad.addColorStop(0, theme.ribbonHighlight);
+          knotGrad.addColorStop(0.55, theme.ribbonMid);
+          knotGrad.addColorStop(1, theme.ribbonDark);
+
+          ctx.fillStyle = knotGrad;
+          drawRoundRect(ctx, -11, -10, 22, 20, 7);
+          ctx.fill();
+
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
+
+      function drawBotanicalLeaf(x, y, angle, size, progress) {
+        if (progress <= 0.01) return;
+        const p = easeOutBack(clamp(progress, 0, 1));
+        const s = size * p;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle);
+
+        const grad = ctx.createLinearGradient(0, -s * 0.3, s, s * 0.3);
+        grad.addColorStop(0, "#052e16");
+        grad.addColorStop(0.45, "#15803d");
+        grad.addColorStop(0.85, "#22c55e");
+        grad.addColorStop(1, "#86efac");
+
+        ctx.fillStyle = grad;
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        ctx.shadowBlur = 10;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(s * 0.3, -s * 0.42, s * 0.75, -s * 0.34, s, 0);
+        ctx.bezierCurveTo(s * 0.75, s * 0.34, s * 0.3, s * 0.42, 0, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(2, 24, 12, 0.28)";
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(s * 0.3, -s * 0.42, s * 0.75, -s * 0.34, s, 0);
+        ctx.lineTo(0, 0);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(187, 247, 208, 0.42)";
+        ctx.lineWidth = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(2, 0);
+        ctx.lineTo(s * 0.9, 0);
+        for (let v = 1; v <= 3; v++) {
+          const vx = s * (0.22 * v);
+          ctx.moveTo(vx, 0);
+          ctx.lineTo(vx + s * 0.14, -s * 0.16);
+          ctx.moveTo(vx, 0);
+          ctx.lineTo(vx + s * 0.14, s * 0.16);
+        }
+        ctx.stroke();
+
+        ctx.restore();
+      }
+
+      function drawEucalyptusBranch(baseX, baseY, branch, progress, timeSec) {
+        if (progress <= 0.01) return;
+        const p = easeOutCubic(clamp(progress, 0, 1));
+        const len = branch.len * p;
+        const sway = Math.sin(timeSec * 1.3 + branch.angle * 3) * 0.04;
+        const ang = branch.angle - Math.PI * 0.5 + sway;
+
+        ctx.save();
+        ctx.translate(baseX, baseY);
+        ctx.rotate(ang);
+
+        const tipX = len;
+        const tipY = branch.curve * len * 0.45;
+
+        ctx.strokeStyle = "#3f624d";
+        ctx.lineWidth = 2.1 * branch.scale;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(len * 0.5, tipY * 0.3, tipX, tipY);
+        ctx.stroke();
+
+        const pairs = 5;
+        for (let i = 0; i < pairs; i++) {
+          const t = 0.32 + (i / (pairs - 1)) * 0.65;
+          if (p < t) continue;
+
+          const leafGrow = clamp((p - t) / 0.25, 0, 1);
+          const lx = t * len;
+          const ly = t * t * tipY;
+          const leafRadius = (13 - i * 1.1) * branch.scale * easeOutBack(leafGrow);
+
+          [-1, 1].forEach(side => {
+            ctx.save();
+            ctx.translate(lx, ly);
+            ctx.rotate(side * (0.75 + i * 0.04));
+
+            const eGrad = ctx.createRadialGradient(leafRadius * 0.6, 0, 1, leafRadius * 0.7, 0, leafRadius * 1.2);
+            eGrad.addColorStop(0, "#a7c4b5");
+            eGrad.addColorStop(0.6, "#52796f");
+            eGrad.addColorStop(1, "#2f3e46");
+
+            ctx.fillStyle = eGrad;
+            ctx.shadowColor = "rgba(0,0,0,0.35)";
+            ctx.shadowBlur = 6;
+            ctx.beginPath();
+            ctx.ellipse(leafRadius * 0.85, 0, leafRadius * 0.95, leafRadius * 0.72, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(220, 242, 232, 0.3)";
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+
+            ctx.restore();
+          });
+        }
+
+        ctx.restore();
+      }
+
+      function drawVelvetRose(x, y, radius, rot, bloomProg, theme) {
+        if (bloomProg <= 0.01) return;
+        const p = easeOutCubic(clamp(bloomProg, 0, 1));
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.42)";
+        ctx.beginPath();
+        ctx.arc(3, 6, radius * 0.96 * p, 0, Math.PI * 2);
+        ctx.fill();
+
+        const rings = [
+          { count: 7, rScale: 1.00, openAt: 0.25, angleOffset: 0.1 },
+          { count: 6, rScale: 0.78, openAt: 0.15, angleOffset: 0.55 },
+          { count: 5, rScale: 0.56, openAt: 0.05, angleOffset: 0.25 },
+          { count: 4, rScale: 0.35, openAt: 0.00, angleOffset: 0.85 }
+        ];
+
+        rings.forEach((ring, rIdx) => {
+          const ringProg = clamp((p - ring.openAt) / (1 - ring.openAt), 0, 1);
+          if (ringProg <= 0.01) return;
+
+          const r = radius * ring.rScale * easeOutBack(ringProg);
+          const petalW = r * 0.95;
+          const petalH = r * 0.88;
+
+          for (let i = 0; i < ring.count; i++) {
+            const a = (i / ring.count) * Math.PI * 2 + ring.angleOffset;
+            ctx.save();
+            ctx.rotate(a);
+
+            const grad = ctx.createRadialGradient(0, -r * 0.12, r * 0.08, 0, -r * 0.48, r * 0.85);
+            grad.addColorStop(0, theme.roseDeep);
+            grad.addColorStop(0.52, theme.roseMid);
+            grad.addColorStop(0.86, theme.roseBright);
+            grad.addColorStop(1, theme.roseRim);
+
+            ctx.fillStyle = grad;
+            ctx.shadowColor = "rgba(0, 0, 0, 0.38)";
+            ctx.shadowBlur = 7;
+            ctx.shadowOffsetY = 2;
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(-petalW * 0.65, -petalH * 0.25, -petalW * 0.72, -petalH * 0.88, -petalW * 0.18, -petalH);
+            ctx.quadraticCurveTo(0, -petalH * 0.92, petalW * 0.18, -petalH);
+            ctx.bezierCurveTo(petalW * 0.72, -petalH * 0.88, petalW * 0.65, -petalH * 0.25, 0, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(255, 245, 248, 0.35)";
+            ctx.lineWidth = rIdx === 0 ? 1.1 : 0.8;
+            ctx.stroke();
+
+            ctx.restore();
+          }
+        });
+
+        const coreR = radius * 0.18 * p;
+        const coreGrad = ctx.createRadialGradient(-coreR * 0.25, -coreR * 0.25, 1, 0, 0, coreR);
+        coreGrad.addColorStop(0, theme.roseBright);
+        coreGrad.addColorStop(0.6, theme.roseDeep);
+        coreGrad.addColorStop(1, "#140206");
+
+        ctx.fillStyle = coreGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, coreR, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      function drawPeony(x, y, radius, rot, bloomProg, theme) {
+        if (bloomProg <= 0.01) return;
+        const p = easeOutCubic(clamp(bloomProg, 0, 1));
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.38)";
+        ctx.beginPath();
+        ctx.arc(2, 5, radius * 0.98 * p, 0, Math.PI * 2);
+        ctx.fill();
+
+        const layers = [
+          { count: 9, scale: 1.0,  start: 0.2 },
+          { count: 8, scale: 0.74, start: 0.1 },
+          { count: 6, scale: 0.48, start: 0.0 }
+        ];
+
+        layers.forEach((layer, idx) => {
+          const lp = clamp((p - layer.start) / (1 - layer.start), 0, 1);
+          if (lp <= 0.01) return;
+
+          const r = radius * layer.scale * easeOutBack(lp);
+          for (let i = 0; i < layer.count; i++) {
+            const a = (i / layer.count) * Math.PI * 2 + idx * 0.42;
+            ctx.save();
+            ctx.rotate(a);
+
+            const grad = ctx.createRadialGradient(0, 0, r * 0.1, 0, -r * 0.5, r * 0.9);
+            grad.addColorStop(0, theme.peonyDeep);
+            grad.addColorStop(0.55, theme.peonyMid);
+            grad.addColorStop(0.88, theme.peonyBright);
+            grad.addColorStop(1, theme.peonyRim);
+
+            ctx.fillStyle = grad;
+            ctx.shadowColor = "rgba(0, 0, 0, 0.32)";
+            ctx.shadowBlur = 6;
+
+            const w = r * 0.62;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.bezierCurveTo(-w, -r * 0.3, -w * 0.95, -r * 0.85, -w * 0.35, -r * 0.98);
+            ctx.quadraticCurveTo(0, -r * 1.06, w * 0.35, -r * 0.98);
+            ctx.bezierCurveTo(w * 0.95, -r * 0.85, w, -r * 0.3, 0, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+
+            ctx.restore();
+          }
+        });
+
+        if (p > 0.45) {
+          const sp = clamp((p - 0.45) / 0.55, 0, 1);
+          for (let s = 0; s < 12; s++) {
+            const sa = (s / 12) * Math.PI * 2;
+            const sr = radius * 0.16 * sp;
+            ctx.fillStyle = s % 2 === 0 ? "#fde047" : "#fbbf24";
+            ctx.beginPath();
+            ctx.arc(Math.cos(sa) * sr, Math.sin(sa) * sr, 2.1 * sp, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        ctx.restore();
+      }
+
+      function drawStargazerLily(x, y, radius, rot, bloomProg, theme) {
+        if (bloomProg <= 0.01) return;
+        const p = easeOutBack(clamp(bloomProg, 0, 1));
+        const r = radius * p;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(rot);
+
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2;
+          const isOuter = i % 2 === 0;
+          const tLen = r * (isOuter ? 1.08 : 0.98);
+          const tWid = r * (isOuter ? 0.34 : 0.30);
+
+          ctx.save();
+          ctx.rotate(a);
+
+          const grad = ctx.createLinearGradient(0, 0, 0, -tLen);
+          grad.addColorStop(0, "#ecfccb");
+          grad.addColorStop(0.28, theme.lilyStripe);
+          grad.addColorStop(0.75, theme.lilyTip);
+          grad.addColorStop(1, theme.lilyBase);
+
+          ctx.fillStyle = grad;
+          ctx.shadowColor = "rgba(0, 0, 0, 0.35)";
+          ctx.shadowBlur = 8;
+
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.bezierCurveTo(-tWid, -tLen * 0.32, -tWid * 0.85, -tLen * 0.78, 0, -tLen);
+          ctx.bezierCurveTo(tWid * 0.85, -tLen * 0.78, tWid, -tLen * 0.32, 0, 0);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
+          ctx.lineWidth = 0.9;
+          ctx.stroke();
+
+          ctx.strokeStyle = theme.lilyStripe;
+          ctx.lineWidth = 1.4;
+          ctx.beginPath();
+          ctx.moveTo(0, -tLen * 0.14);
+          ctx.lineTo(0, -tLen * 0.76);
+          ctx.stroke();
+
+          ctx.fillStyle = theme.lilyStripe;
+          [[-3, -0.32], [3, -0.36], [-2, -0.48], [2.5, -0.52]].forEach(([sx, sy]) => {
+            ctx.beginPath();
+            ctx.arc(sx, tLen * sy, 1.1, 0, Math.PI * 2);
+            ctx.fill();
+          });
+
+          ctx.restore();
+        }
+
+        for (let s = 0; s < 6; s++) {
+          const sa = (s / 6) * Math.PI * 2 + 0.25;
+          const fLen = r * 0.44;
+          const fx = Math.cos(sa) * fLen;
+          const fy = Math.sin(sa) * fLen;
+
+          ctx.strokeStyle = "#d9f99d";
+          ctx.lineWidth = 1.0;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(fx * 0.5, fy * 0.2, fx, fy);
+          ctx.stroke();
+
+          ctx.fillStyle = "#f59e0b";
+          ctx.beginPath();
+          ctx.ellipse(fx, fy, 2.8, 1.5, sa, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function drawBabysBreath(x, y, scale, progress, theme) {
+        if (progress <= 0.01) return;
+        const p = easeOutBack(clamp(progress, 0, 1));
+
+        const offsets = [
+          { dx: 0, dy: 0, r: 4.5 },
+          { dx: -11, dy: -8, r: 3.8 },
+          { dx: 12, dy: -7, r: 4.0 },
+          { dx: -8, dy: 10, r: 3.6 },
+          { dx: 10, dy: 9, r: 3.8 },
+          { dx: 2, dy: -15, r: 3.4 }
+        ];
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(scale * p, scale * p);
+
+        ctx.strokeStyle = "rgba(134, 239, 172, 0.5)";
+        ctx.lineWidth = 0.9;
+        offsets.forEach(o => {
+          ctx.beginPath();
+          ctx.moveTo(0, 14);
+          ctx.lineTo(o.dx, o.dy);
+          ctx.stroke();
+        });
+
+        offsets.forEach(o => {
+          const glow = ctx.createRadialGradient(o.dx, o.dy, 0, o.dx, o.dy, o.r * 2.4);
+          glow.addColorStop(0, "rgba(255, 255, 255, 0.85)");
+          glow.addColorStop(0.5, theme.lilyBase);
+          glow.addColorStop(1, "rgba(255, 255, 255, 0)");
+
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(o.dx, o.dy, o.r * 2.4, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(o.dx, o.dy, o.r * 0.72, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        ctx.restore();
+      }
+
+      // --------------------------------------------------------------------------
+      // 7. MASTER BOUQUET COMPOSITION, PARTICLE UPDATER & RENDER LOOP
+      // --------------------------------------------------------------------------
+      function drawCompleteBouquet(now, timeSec, px, py) {
+        const theme = FLORIST_THEMES[themeIdx];
+        const elapsed = isUnlocked ? (now - animStart) / 1000 : 0;
+        const bouquetElapsed = elapsed - 3.45;
+        if (bouquetElapsed <= 0) return;
+
+        if (!headerRevealedForCycle && elapsed >= 3.72) {
+          headerRevealedForCycle = true;
+          revealTypography();
+        }
+
+        const riseProg = easeOutQuart(clamp(bouquetElapsed / 1.55, 0, 1));
+        const riseOffsetY = (1 - riseProg) * (H * 0.72);
+
+        const isShort = H < 540;
+        const headerReserve = isShort ? 105 : clamp(H * 0.21, 132, 195);
+        const footerReserve = isShort ? 62 : clamp(H * 0.11, 72, 95);
+        const availW = W * 0.92;
+        const availH = Math.max(180, H - headerReserve - footerReserve);
+
+        const bouquetScale = clamp(Math.min(availW / 345, availH / 425), 0.5, 1.2);
+        const baseX = W * 0.5 + px * 22;
+        const baseY = headerReserve + availH * 0.44 + py * 18 + riseOffsetY;
+
+        const breezeSway = Math.sin(timeSec * 1.15) * 5.2 * bouquetScale;
+
+        const wrapProg = clamp(bouquetElapsed / 1.05, 0, 1);
+        const ribbonProg = clamp((bouquetElapsed - 0.55) / 0.85, 0, 1);
+
+        // Layer 1: Hand & Sleeve Back
+        drawRomanticHandBack(
+          baseX + breezeSway * 0.22 + px * 13,
+          baseY + py * 11,
+          bouquetScale
+        );
+
+        // Layer 2: Back Wrapping Paper
+        drawWrappingPaperBack(baseX + breezeSway * 0.25, baseY, bouquetScale, wrapProg, theme);
+
+        // Layer 3: Eucalyptus & Veined Leaves
+        ctx.save();
+        ctx.translate(baseX + breezeSway * 0.55, baseY);
+        ctx.scale(bouquetScale, bouquetScale);
+
+        FOLIAGE_BRANCHES.forEach(item => {
+          const itemProg = clamp((bouquetElapsed - item.delay * 0.78) / 1.0, 0, 1);
+          if (item.type === "eucalyptus") {
+            drawEucalyptusBranch(0, 35, item, itemProg, timeSec);
+          } else {
+            drawBotanicalLeaf(item.ox, item.oy, item.angle, item.size, itemProg);
+          }
+        });
+        ctx.restore();
+
+        // Layer 4: Roses, Peonies & Lilies
+        BOUQUET_BLOOMS.forEach(bloom => {
+          const bloomProg = clamp((bouquetElapsed - bloom.delay * 0.78) / 1.15, 0, 1);
+          const individualSway = Math.sin(timeSec * 1.5 + bloom.ox * 0.03) * 2.2;
+          const bx = baseX + (bloom.ox + individualSway) * bouquetScale + breezeSway * 0.65 + px * 10 * bloom.depth;
+          const by = baseY + bloom.oy * bouquetScale + py * 8 * bloom.depth;
+          const r = bloom.radius * bouquetScale;
+
+          if (bloom.species === "rose") {
+            drawVelvetRose(bx, by, r, bloom.rot, bloomProg, theme);
+          } else if (bloom.species === "peony") {
+            drawPeony(bx, by, r, bloom.rot, bloomProg, theme);
+          } else if (bloom.species === "lily") {
+            drawStargazerLily(bx, by, r, bloom.rot, bloomProg, theme);
+          }
+        });
+
+        // Layer 5: Baby's Breath Sprigs
+        BABYS_BREATH_CLUSTERS.forEach(bb => {
+          const bbProg = clamp((bouquetElapsed - bb.delay * 0.78) / 0.85, 0, 1);
+          const bx = baseX + bb.ox * bouquetScale + breezeSway * 0.72 + px * 12;
+          const by = baseY + bb.oy * bouquetScale + py * 10;
+          drawBabysBreath(bx, by, bb.scale * bouquetScale, bbProg, theme);
+        });
+
+        // Layer 6: Front Wrapping Paper & Ribbon Bow
+        drawWrappingPaperFrontAndRibbon(
+          baseX + breezeSway * 0.35 + px * 14,
+          baseY + py * 12,
+          bouquetScale,
+          wrapProg,
+          ribbonProg,
+          timeSec,
+          breezeSway
+        );
+
+        // Layer 7: Curled Fingers & Thumb Holding Ribbon Waist
+        drawRomanticHandFront(
+          baseX + breezeSway * 0.24 + px * 14,
+          baseY + py * 12,
+          bouquetScale
+        );
+      }
+
+      function updateAndDrawParticles(now, timeSec, px, py) {
+        const theme = FLORIST_THEMES[themeIdx];
+
+        for (let i = interactiveBlooms.length - 1; i >= 0; i--) {
+          const ib = interactiveBlooms[i];
+          const age = now - ib.born;
+          if (age >= ib.duration) {
+            interactiveBlooms.splice(i, 1);
+            continue;
+          }
+          const lifeRatio = age / ib.duration;
+          const bloomProg = clamp(age / 750, 0, 1);
+          const fadeAlpha = lifeRatio > 0.72 ? clamp(1 - (lifeRatio - 0.72) / 0.28, 0, 1) : 1;
+
+          ctx.save();
+          ctx.globalAlpha = fadeAlpha;
+          if (ib.isPeony) {
+            drawPeony(ib.x + px * 14, ib.y + py * 14, ib.radius, ib.rot + age * 0.0002, bloomProg, theme);
+          } else {
+            drawVelvetRose(ib.x + px * 14, ib.y + py * 14, ib.radius, ib.rot + age * 0.0002, bloomProg, theme);
+          }
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = "screen";
+        for (let i = 0; i < dustMotes.length; i++) {
+          const m = dustMotes[i];
+          m.x += m.vx + Math.sin(timeSec + m.phase) * 0.15;
+          m.y += m.vy;
+          if (m.y < -10) {
+            m.y = H + 10;
+            m.x = Math.random() * W;
+          }
+          const twinkle = 0.5 + Math.sin(timeSec * 2.2 + m.phase) * 0.5;
+          ctx.fillStyle = `rgba(254, 240, 138, ${m.alpha * twinkle})`;
+          ctx.beginPath();
+          ctx.arc(m.x + px * 16, m.y + py * 16, m.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        for (let i = fallingPetals.length - 1; i >= 0; i--) {
+          const pt = fallingPetals[i];
+          pt.x += pt.vx + Math.sin(timeSec * 1.4 + pt.swayPhase) * 0.55;
+          pt.y += pt.vy;
+          if (pt.isBurst) {
+            pt.vx *= 0.97;
+            pt.vy += 0.035;
+          }
+          pt.rot += pt.rotSpeed;
+          pt.flipPhase += pt.flipSpeed;
+
+          if (pt.y > H + 30) {
+            if (pt.isBurst) {
+              fallingPetals.splice(i, 1);
+              continue;
+            } else {
+              pt.y = -20;
+              pt.x = Math.random() * W;
+            }
+          }
+
+          ctx.save();
+          ctx.translate(pt.x + px * 24, pt.y + py * 24);
+          ctx.rotate(pt.rot);
+          ctx.scale(1, Math.cos(pt.flipPhase) * 0.65 + 0.35);
+          ctx.globalAlpha = pt.alpha;
+
+          const s = pt.size;
+          const pGrad = ctx.createLinearGradient(0, -s, 0, s);
+          pGrad.addColorStop(0, "#ffe4e6");
+          pGrad.addColorStop(0.4, pt.color);
+          pGrad.addColorStop(1, "#3b0712");
+
+          ctx.fillStyle = pGrad;
+          ctx.shadowColor = "rgba(0,0,0,0.35)";
+          ctx.shadowBlur = 5;
+
+          ctx.beginPath();
+          ctx.moveTo(0, -s);
+          ctx.bezierCurveTo(s * 0.9, -s * 0.5, s * 0.85, s * 0.7, 0, s);
+          ctx.bezierCurveTo(-s * 0.85, s * 0.7, -s * 0.9, -s * 0.5, 0, -s);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = touchSparkles.length - 1; i >= 0; i--) {
+          const sp = touchSparkles[i];
+          sp.x += sp.vx;
+          sp.y += sp.vy;
+          sp.life -= sp.decay;
+          if (sp.life <= 0) {
+            touchSparkles.splice(i, 1);
+            continue;
+          }
+          ctx.globalAlpha = sp.life;
+          ctx.fillStyle = sp.color;
+          ctx.shadowColor = sp.color;
+          ctx.shadowBlur = 8;
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y, sp.size * sp.life, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      let lastFrameTime = performance.now();
+      function animate(now) {
+        const dt = clamp((now - lastFrameTime) / 1000, 0.001, 0.05);
+        lastFrameTime = now;
+        const timeSec = now * 0.001;
+        const elapsed = isUnlocked ? (now - animStart) / 1000 : 0;
+
+        currentTiltX = lerp(currentTiltX, targetTiltX, 0.065);
+        currentTiltY = lerp(currentTiltY, targetTiltY, 0.065);
+
+        drawStudioBackdrop(timeSec, currentTiltX, currentTiltY);
+        updateAndDrawFireworkHeartPhase(elapsed, timeSec, dt, currentTiltX, currentTiltY);
+        drawCompleteBouquet(now, timeSec, currentTiltX, currentTiltY);
+        updateAndDrawParticles(now, timeSec, currentTiltX, currentTiltY);
+
+        requestAnimationFrame(animate);
+      }
+
+      // --------------------------------------------------------------------------
+      // 8. WEB AUDIO API SLOW ROMANTIC BALLAD SYNTHESIZER (~60 BPM)
+      // --------------------------------------------------------------------------
+      let audioCtx = null;
+      let masterGain = null;
+      let reverbNode = null;
+      let delayNode = null;
+      let isMusicPlaying = false;
+      let musicSchedulerTimer = null;
+      let nextStepTime = 0;
+      let currentStep = 0;
+
+      const btnMusic = document.getElementById("btnMusic");
+      const iconMusicOn = document.getElementById("iconMusicOn");
+      const iconMusicOff = document.getElementById("iconMusicOff");
+      const musicBtnLabel = document.getElementById("musicBtnLabel");
+
+      function updateMusicButtonUI() {
+        if (isMusicPlaying) {
+          iconMusicOn.classList.remove("hidden");
+          iconMusicOff.classList.add("hidden");
+          musicBtnLabel.textContent = "Müzik";
+        } else {
+          iconMusicOn.classList.add("hidden");
+          iconMusicOff.classList.remove("hidden");
+          musicBtnLabel.textContent = "Müzik Kapalı";
+        }
+      }
+
+      function midiToFreq(midi) {
+        return 440 * Math.pow(2, (midi - 69) / 12);
+      }
+
+      function createWarmImpulseResponse(context, duration = 3.2, decay = 2.6) {
+        const rate = context.sampleRate;
+        const length = Math.floor(rate * duration);
+        const impulse = context.createBuffer(2, length, rate);
+        for (let ch = 0; ch < 2; ch++) {
+          const data = impulse.getChannelData(ch);
+          for (let i = 0; i < length; i++) {
+            const env = Math.pow(1 - i / length, decay);
+            data[i] = (Math.random() * 2 - 1) * env;
+          }
+        }
+        return impulse;
+      }
+
+      function initRomanticAudioEngine() {
+        if (audioCtx) return;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        audioCtx = new AudioContextClass();
+
+        masterGain = audioCtx.createGain();
+        masterGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+
+        const compressor = audioCtx.createDynamicsCompressor();
+        compressor.threshold.setValueAtTime(-18, audioCtx.currentTime);
+        compressor.knee.setValueAtTime(18, audioCtx.currentTime);
+        compressor.ratio.setValueAtTime(3.5, audioCtx.currentTime);
+        compressor.attack.setValueAtTime(0.02, audioCtx.currentTime);
+        compressor.release.setValueAtTime(0.25, audioCtx.currentTime);
+
+        reverbNode = audioCtx.createConvolver();
+        reverbNode.buffer = createWarmImpulseResponse(audioCtx, 3.2, 2.5);
+        const reverbWet = audioCtx.createGain();
+        reverbWet.gain.setValueAtTime(0.38, audioCtx.currentTime);
+
+        delayNode = audioCtx.createDelay(1.0);
+        delayNode.delayTime.setValueAtTime(0.5, audioCtx.currentTime);
+        const delayFeedback = audioCtx.createGain();
+        delayFeedback.gain.setValueAtTime(0.32, audioCtx.currentTime);
+        const delayFilter = audioCtx.createBiquadFilter();
+        delayFilter.type = "lowpass";
+        delayFilter.frequency.setValueAtTime(1650, audioCtx.currentTime);
+        const delayWet = audioCtx.createGain();
+        delayWet.gain.setValueAtTime(0.22, audioCtx.currentTime);
+
+        delayNode.connect(delayFilter);
+        delayFilter.connect(delayFeedback);
+        delayFeedback.connect(delayNode);
+        delayFilter.connect(delayWet);
+
+        reverbNode.connect(reverbWet);
+        reverbWet.connect(masterGain);
+        delayWet.connect(masterGain);
+        masterGain.connect(compressor);
+        compressor.connect(audioCtx.destination);
+      }
+
+      function playStringPadChord(midiNotes, startTime, duration) {
+        if (!audioCtx || !masterGain) return;
+        const chordGain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(640, startTime);
+        filter.frequency.linearRampToValueAtTime(980, startTime + duration * 0.55);
+        filter.frequency.linearRampToValueAtTime(580, startTime + duration);
+
+        const peak = 0.085 / Math.sqrt(midiNotes.length);
+        chordGain.gain.setValueAtTime(0.0001, startTime);
+        chordGain.gain.linearRampToValueAtTime(peak, startTime + 1.35);
+        chordGain.gain.setValueAtTime(peak, startTime + duration - 1.4);
+        chordGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration + 0.5);
+
+        chordGain.connect(filter);
+        filter.connect(masterGain);
+        filter.connect(reverbNode);
+
+        midiNotes.forEach((midi, idx) => {
+          const freq = midiToFreq(midi);
+          [-5.5, 5.5].forEach((detuneCents, pairIdx) => {
+            const osc = audioCtx.createOscillator();
+            osc.type = pairIdx === 0 ? "sawtooth" : "triangle";
+            osc.frequency.setValueAtTime(freq, startTime);
+            osc.detune.setValueAtTime(detuneCents + (idx % 2 === 0 ? 1.5 : -1.5), startTime);
+            osc.connect(chordGain);
+            osc.start(startTime);
+            osc.stop(startTime + duration + 0.6);
+          });
+        });
+      }
+
+      function playPianoNote(midi, startTime, duration, velocity = 0.75) {
+        if (!audioCtx || !masterGain) return;
+        const freq = midiToFreq(midi);
+
+        const noteGain = audioCtx.createGain();
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.setValueAtTime(850 + velocity * 1400, startTime);
+        filter.frequency.exponentialRampToValueAtTime(420, startTime + duration + 0.8);
+
+        const amp = 0.13 * velocity;
+        noteGain.gain.setValueAtTime(0.0001, startTime);
+        noteGain.gain.linearRampToValueAtTime(amp, startTime + 0.016);
+        noteGain.gain.exponentialRampToValueAtTime(amp * 0.36, startTime + 0.55);
+        noteGain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration + 1.15);
+
+        noteGain.connect(filter);
+        filter.connect(masterGain);
+        filter.connect(reverbNode);
+        filter.connect(delayNode);
+
+        const harmonics = [
+          { ratio: 1, type: "sine",     weight: 1.0 },
+          { ratio: 2, type: "triangle", weight: 0.28 },
+          { ratio: 3, type: "sine",     weight: 0.09 }
+        ];
+
+        harmonics.forEach((h) => {
+          const osc = audioCtx.createOscillator();
+          const hGain = audioCtx.createGain();
+          osc.type = h.type;
+          osc.frequency.setValueAtTime(freq * h.ratio, startTime);
+          hGain.gain.setValueAtTime(h.weight, startTime);
+          osc.connect(hGain);
+          hGain.connect(noteGain);
+          osc.start(startTime);
+          osc.stop(startTime + duration + 1.25);
+        });
+      }
+
+      // ~60 BPM Romantic Progression: Dm9 -> Bbmaj7 -> Fmaj7 -> Cadd9 (32 eighth-note steps)
+      const BALLAD_STEP_DUR = (60 / 60) * 0.5;
+      const BALLAD_CHORDS = {
+        0:  [50, 57, 60, 64, 65, 69],
+        8:  [46, 53, 57, 60, 62, 65],
+        16: [41, 48, 52, 55, 57, 60],
+        24: [48, 55, 60, 62, 64, 67]
+      };
+
+      const BALLAD_ARPEGGIO = [
+        50, 57, 62, 65, 64, 62, 57, null,
+        46, 53, 58, 62, 60, 58, 53, null,
+        41, 48, 53, 57, 55, 53, 48, null,
+        48, 55, 60, 64, 62, 60, 55, null
+      ];
+
+      const BALLAD_MELODY = {
+        0:  { m: 69, d: 1.4, v: 0.82 },
+        2:  { m: 72, d: 0.9, v: 0.74 },
+        3:  { m: 74, d: 1.8, v: 0.88 },
+        6:  { m: 72, d: 0.9, v: 0.72 },
+        7:  { m: 69, d: 0.9, v: 0.68 },
+        8:  { m: 70, d: 2.2, v: 0.85 },
+        12: { m: 69, d: 0.9, v: 0.72 },
+        13: { m: 67, d: 0.9, v: 0.70 },
+        14: { m: 69, d: 1.2, v: 0.78 },
+        16: { m: 64, d: 2.1, v: 0.82 },
+        20: { m: 65, d: 0.9, v: 0.74 },
+        21: { m: 67, d: 0.9, v: 0.76 },
+        22: { m: 69, d: 1.2, v: 0.80 },
+        24: { m: 67, d: 2.4, v: 0.86 },
+        29: { m: 64, d: 0.9, v: 0.68 },
+        30: { m: 62, d: 1.2, v: 0.72 }
+      };
+
+      function scheduleBalladStep(step, time) {
+        const s = step % 32;
+        if (BALLAD_CHORDS[s]) {
+          playStringPadChord(BALLAD_CHORDS[s], time, BALLAD_STEP_DUR * 8);
+        }
+        const arpNote = BALLAD_ARPEGGIO[s];
+        if (arpNote) {
+          playPianoNote(arpNote, time, BALLAD_STEP_DUR * 1.9, 0.44);
+        }
+        const melNote = BALLAD_MELODY[s];
+        if (melNote) {
+          playPianoNote(melNote.m, time, BALLAD_STEP_DUR * melNote.d, melNote.v);
+        }
+      }
+
+      function startRomanticMusic() {
+        try {
+          initRomanticAudioEngine();
+          if (!audioCtx) return;
+
+          if (audioCtx.state === "suspended") {
+            audioCtx.resume();
+          }
+
+          if (isMusicPlaying) return;
+          isMusicPlaying = true;
+          updateMusicButtonUI();
+
+          const now = audioCtx.currentTime;
+          masterGain.gain.cancelScheduledValues(now);
+          masterGain.gain.setValueAtTime(Math.max(0.001, masterGain.gain.value), now);
+          masterGain.gain.linearRampToValueAtTime(0.88, now + 1.2);
+
+          nextStepTime = now + 0.05;
+          currentStep = 0;
+
+          clearInterval(musicSchedulerTimer);
+          musicSchedulerTimer = setInterval(() => {
+            if (!isMusicPlaying || !audioCtx) return;
+            while (nextStepTime < audioCtx.currentTime + 0.35) {
+              scheduleBalladStep(currentStep, nextStepTime);
+              nextStepTime += BALLAD_STEP_DUR;
+              currentStep++;
+            }
+          }, 120);
+        } catch (_) {}
+      }
+
+      function pauseRomanticMusic() {
+        try {
+          if (!audioCtx || !isMusicPlaying) return;
+          isMusicPlaying = false;
+          updateMusicButtonUI();
+          clearInterval(musicSchedulerTimer);
+
+          const now = audioCtx.currentTime;
+          masterGain.gain.cancelScheduledValues(now);
+          masterGain.gain.setValueAtTime(Math.max(0.001, masterGain.gain.value), now);
+          masterGain.gain.linearRampToValueAtTime(0.0001, now + 0.45);
+          setTimeout(() => {
+            if (!isMusicPlaying && audioCtx && audioCtx.state === "running") {
+              audioCtx.suspend();
+            }
+          }, 500);
+        } catch (_) {}
+      }
+
+      btnMusic.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (isMusicPlaying) {
+          pauseRomanticMusic();
+          showToast("Müzik duraklatıldı", 1500);
+        } else {
+          startRomanticMusic();
+          showToast("Romantik melodi çalıyor 🎶", 1800);
+        }
+      });
+
+      // --------------------------------------------------------------------------
+      // 9. FOOLPROOF PASSWORD GATE ("09112026")
+      // --------------------------------------------------------------------------
+      const SECRET_PIN = "09112026";
+      let lockBusy = false;
+
+      const lockScreen = document.getElementById("lock-screen");
+      const lockCard = document.getElementById("lockCard");
+      const lockSubtitle = document.getElementById("lockSubtitle");
+      const pinInput = document.getElementById("pin-input");
+      const digitSlots = Array.from(document.querySelectorAll("#digitSlots .digit-slot"));
+
+      function syncPinUI() {
+        const cleaned = pinInput.value.replace(/\D/g, "").slice(0, SECRET_PIN.length);
+        if (pinInput.value !== cleaned) {
+          pinInput.value = cleaned;
+        }
+
+        digitSlots.forEach((slot, idx) => {
+          const ch = cleaned[idx];
+          if (ch !== undefined) {
+            slot.textContent = ch;
+            slot.classList.add("is-filled");
+            slot.classList.remove("is-active");
+          } else {
+            slot.textContent = "•";
+            slot.classList.remove("is-filled");
+            slot.classList.toggle("is-active", idx === cleaned.length);
+          }
+        });
+
+        if (cleaned.length === SECRET_PIN.length) {
+          if (cleaned === SECRET_PIN) {
+            unlockExperience();
+          } else {
+            handleWrongPin();
+          }
+        }
+      }
+
+      function unlockExperience() {
+        if (isUnlocked) return;
+        isUnlocked = true;
+        lockBusy = true;
+
+        pinInput.blur();
+
+        lockScreen.classList.add("is-unlocked");
+        document.body.classList.remove("is-locked");
+        document.body.classList.add("is-unlocked");
+
+        startRomanticMusic();
+        animStart = performance.now();
+        headerRevealedForCycle = false;
+        initFireworkHeartSequence();
+      }
+
+      function handleWrongPin() {
+        if (lockBusy) return;
+        lockBusy = true;
+        lockCard.classList.add("lock-error");
+        lockSubtitle.textContent = "Hatalı şifre, tekrar dene";
+        lockSubtitle.classList.add("is-error");
+
+        setTimeout(() => {
+          pinInput.value = "";
+          syncPinUI();
+          lockCard.classList.remove("lock-error");
+          lockSubtitle.textContent = "Devam etmek için 8 haneli şifreyi gir";
+          lockSubtitle.classList.remove("is-error");
+          lockBusy = false;
+        }, 380);
+      }
+
+      function appendDigit(digit) {
+        if (isUnlocked || lockBusy) return;
+        if (pinInput.value.length >= SECRET_PIN.length) return;
+        pinInput.value += digit;
+        syncPinUI();
+      }
+
+      function backspaceDigit() {
+        if (isUnlocked || lockBusy) return;
+        if (pinInput.value.length === 0) return;
+        pinInput.value = pinInput.value.slice(0, -1);
+        syncPinUI();
+      }
+
+      function clearDigits() {
+        if (isUnlocked || lockBusy) return;
+        pinInput.value = "";
+        syncPinUI();
+      }
+
+      pinInput.addEventListener("input", () => {
+        if (isUnlocked || lockBusy) return;
+        syncPinUI();
+      });
+
+      function bindTactileButton(btn, action) {
+        let lastTriggered = 0;
+        const trigger = (e) => {
+          e.stopPropagation();
+          const now = performance.now();
+          if (now - lastTriggered < 220) {
+            e.preventDefault();
+            return;
+          }
+          lastTriggered = now;
+          if (e.type === "pointerdown") {
+            e.preventDefault();
+          }
+          btn.classList.add("is-pressed");
+          setTimeout(() => btn.classList.remove("is-pressed"), 120);
+          action();
+        };
+        btn.addEventListener("pointerdown", trigger);
+        btn.addEventListener("click", trigger);
+      }
+
+      document.querySelectorAll("#onscreenKeypad button[data-digit]").forEach((btn) => {
+        const digit = btn.getAttribute("data-digit");
+        bindTactileButton(btn, () => appendDigit(digit));
+      });
+
+      bindTactileButton(document.getElementById("btnPinClear"), clearDigits);
+      bindTactileButton(document.getElementById("btnPinBackspace"), backspaceDigit);
+
+      // --------------------------------------------------------------------------
+      // 10. UI CONTROLS, THEME CYCLING, MODAL & REELS CLEAN MODE
+      // --------------------------------------------------------------------------
+      const recipientBadge = document.getElementById("recipientBadge");
+      const recipientText = document.getElementById("recipientText");
+      const line1Text = document.getElementById("line1Text");
+      const line2Text = document.getElementById("line2Text");
+      const personalNoteText = document.getElementById("personalNoteText");
+      const toastBanner = document.getElementById("toastBanner");
+      const controlsContainer = document.getElementById("controlsContainer");
+      const paletteSwatch = document.getElementById("paletteSwatch");
+
+      let toastTimeout = null;
+      function showToast(msg, duration = 2100) {
+        toastBanner.textContent = msg;
+        toastBanner.style.opacity = "1";
+        toastBanner.style.transform = "translate(-50%, 0)";
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          toastBanner.style.opacity = "0";
+          toastBanner.style.transform = "translate(-50%, -6px)";
+        }, duration);
+      }
+
+      function revealTypography() {
+        const els = [recipientBadge, line1Text, line2Text, personalNoteText];
+        els.forEach(el => el.classList.remove("is-visible"));
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            els.forEach(el => el.classList.add("is-visible"));
+          });
+        });
+      }
+
+      function applyFloristTheme(idx) {
+        themeIdx = idx % FLORIST_THEMES.length;
+        const t = FLORIST_THEMES[themeIdx];
+
+        document.documentElement.style.setProperty("--title-glow", t.titleGlow);
+        line2Text.style.backgroundImage = t.titleGradient;
+        paletteSwatch.style.background = t.swatch;
+
+        bokehOrbs.forEach((orb, i) => {
+          orb.color = t.bokehColors[i % t.bokehColors.length];
+        });
+        fallingPetals.forEach(pt => {
+          pt.color = t.fallingPetalColors[Math.floor(Math.random() * t.fallingPetalColors.length)];
+        });
+
+        showToast(`Buket Teması: ${t.name}`);
+      }
+
+      document.getElementById("btnReplay").addEventListener("click", (e) => {
+        e.stopPropagation();
+        [recipientBadge, line1Text, line2Text, personalNoteText].forEach(el => el.classList.remove("is-visible"));
+        headerRevealedForCycle = false;
+        animStart = performance.now();
+        initFireworkHeartSequence();
+        showToast("Sürpriz baştan başlıyor ✨", 1800);
+      });
+
+      document.getElementById("btnPalette").addEventListener("click", (e) => {
+        e.stopPropagation();
+        applyFloristTheme(themeIdx + 1);
+      });
+
+      const noteModal = document.getElementById("noteModal");
+      const fieldRecipient = document.getElementById("fieldRecipient");
+      const fieldLine1 = document.getElementById("fieldLine1");
+      const fieldLine2 = document.getElementById("fieldLine2");
+      const fieldPersonalNote = document.getElementById("fieldPersonalNote");
+
+      const openModal = () => noteModal.classList.remove("modal-hidden");
+      const closeModal = () => noteModal.classList.add("modal-hidden");
+
+      document.getElementById("btnEditNote").addEventListener("click", (e) => {
+        e.stopPropagation();
+        openModal();
+      });
+
+      document.getElementById("btnCloseModal").addEventListener("click", closeModal);
+      document.getElementById("btnCancelModal").addEventListener("click", closeModal);
+      noteModal.addEventListener("click", (e) => {
+        if (e.target === noteModal) closeModal();
+      });
+
+      document.getElementById("noteForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const rec = fieldRecipient.value.trim();
+        const l1 = fieldLine1.value.trim() || "Herkes çiçek alır,";
+        const l2 = fieldLine2.value.trim() || "ben senin için kodladım.";
+        const note = fieldPersonalNote.value.trim();
+
+        if (rec) {
+          recipientText.textContent = rec;
+          recipientBadge.style.display = "flex";
+        } else {
+          recipientBadge.style.display = "none";
+        }
+
+        line1Text.textContent = l1;
+        line2Text.textContent = l2;
+
+        if (note) {
+          personalNoteText.textContent = note;
+          personalNoteText.style.display = "block";
+        } else {
+          personalNoteText.style.display = "none";
+        }
+
+        closeModal();
+        [recipientBadge, line1Text, line2Text, personalNoteText].forEach(el => el.classList.remove("is-visible"));
+        headerRevealedForCycle = false;
+        animStart = performance.now();
+        initFireworkHeartSequence();
+      });
+
+      let reelsModeActive = false;
+      function setReelsMode(active) {
+        reelsModeActive = active;
+        if (active) {
+          controlsContainer.classList.add("reels-hidden");
+          showToast("Reels Modu • Geri dönmek için çift dokun", 2200);
+        } else {
+          controlsContainer.classList.remove("reels-hidden");
+          showToast("Kontroller geri getirildi", 1500);
+        }
+      }
+
+      document.getElementById("btnReelsMode").addEventListener("click", (e) => {
+        e.stopPropagation();
+        setReelsMode(true);
+      });
+
+      // Canvas Pointer Events
+      let lastTap = 0;
+      canvas.addEventListener("pointerdown", (e) => {
+        if (!isUnlocked) return;
+        const now = performance.now();
+        if (reelsModeActive && (now - lastTap < 340)) {
+          setReelsMode(false);
+          lastTap = 0;
+          return;
+        }
+        lastTap = now;
+
+        targetTiltX = ((e.clientX / W) - 0.5) * 2;
+        targetTiltY = ((e.clientY / H) - 0.5) * 2;
+        spawnTouchShower(e.clientX, e.clientY);
+      });
+
+      canvas.addEventListener("pointermove", (e) => {
+        if (!isUnlocked) return;
+        targetTiltX = ((e.clientX / W) - 0.5) * 2;
+        targetTiltY = ((e.clientY / H) - 0.5) * 2;
+      });
+
+      canvas.addEventListener("pointerleave", () => {
+        targetTiltX = 0;
+        targetTiltY = 0;
+      });
+
+      // Global Physical Keyboard Support
+      window.addEventListener("keydown", (e) => {
+        if (!isUnlocked) {
+          if (document.activeElement === pinInput) return;
+          if (/^[0-9]$/.test(e.key)) {
+            e.preventDefault();
+            appendDigit(e.key);
+          } else if (e.key === "Backspace" || e.key === "Delete") {
+            e.preventDefault();
+            backspaceDigit();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            clearDigits();
+          }
+          return;
+        }
+
+        if (e.key === "Escape") {
+          if (!noteModal.classList.contains("modal-hidden")) closeModal();
+          else if (reelsModeActive) setReelsMode(false);
+        }
+      });
+
+      window.addEventListener("resize", resize);
+
+      // Immediate First-Paint Bootstrap
+      function bootstrap() {
+        resize();
+        initAtmosphere();
+        syncPinUI();
+        try {
+          pinInput.focus({ preventScroll: true });
+        } catch (_) {}
+        requestAnimationFrame(animate);
+      }
+
+      bootstrap();
+    })();
+  </script>
+</body>
+</html>
